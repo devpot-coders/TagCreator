@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Rect, Circle, Textbox, Polygon, Path, Line } from "fabric";
 import * as fabric from 'fabric';
 import ShapesPanel from './ShapesPanel';
+import ObjectSettingsPanel from './ObjectSettingsPanel';
 
 // Shape definitions
 const SHAPES = {
@@ -633,7 +634,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
   
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [deleteIconPosition, setDeleteIconPosition] = useState(null);
+  const [settingsIconPosition, setSettingsIconPosition] = useState(null);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [settingsPanelPosition, setSettingsPanelPosition] = useState(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -748,13 +751,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         onObjectSelect(e.selected?.[0]);
         if (e.selected?.[0]) {
           const obj = e.selected[0];
-          const width = obj.width * (obj.scaleX || 1);
-          setDeleteIconPosition({
-            left: obj.left + width + 10,
-            top: obj.top - 10
+          setSettingsIconPosition({
+            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
+            top: obj.getBoundingRect().top - 10
           });
         } else {
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       });
 
@@ -762,29 +764,27 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         onObjectSelect(e.selected?.[0]);
         if (e.selected?.[0]) {
           const obj = e.selected[0];
-          const width = obj.width * (obj.scaleX || 1);
-          setDeleteIconPosition({
-            left: obj.left + width + 10,
-            top: obj.top - 10
+          setSettingsIconPosition({
+            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
+            top: obj.getBoundingRect().top - 10
           });
         } else {
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       });
 
       canvas.on("selection:cleared", () => {
         onObjectSelect(null);
-        setDeleteIconPosition(null);
+        setSettingsIconPosition(null);
       });
 
       // Track all object modifications
       canvas.on("object:modified", (e) => {
         onObjectSelect(e.target);
         if (e.target) {
-          const width = e.target.width * (e.target.scaleX || 1);
-          setDeleteIconPosition({
-            left: e.target.left + width + 10,
-            top: e.target.top - 10
+          setSettingsIconPosition({
+            left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+            top: e.target.getBoundingRect().top - 10
           });
         }
         saveState();
@@ -795,10 +795,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
+            setSettingsIconPosition({
+              left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+              top: e.target.getBoundingRect().top - 10
             });
           }
         }
@@ -809,10 +808,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
+            setSettingsIconPosition({
+              left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+              top: e.target.getBoundingRect().top - 10
             });
           }
         }
@@ -823,11 +821,7 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
-            });
+            setSettingsIconPosition(null);
           }
         }
       });
@@ -887,9 +881,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
       fabricCanvas.setActiveObject(fabricImg);
       fabricCanvas.requestRenderAll();
   
-      setDeleteIconPosition({
-        left: fabricImg.left + (fabricImg.width * fabricImg.scaleX) + 10,
-        top: fabricImg.top - 10
+      setSettingsIconPosition({
+        left: fabricImg.getBoundingRect().left + fabricImg.getBoundingRect().width - 12,
+        top: fabricImg.getBoundingRect().top - 10
       });
   
       onToolChange("select");
@@ -1128,7 +1122,7 @@ useEffect(() => {
           fabricCanvas.remove(activeObject);
           fabricCanvas.requestRenderAll();
           onObjectSelect(null);
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       }
     };
@@ -1182,18 +1176,6 @@ useEffect(() => {
     }
   }, [fabricCanvas, canUndo, canRedo]);
 
-  const handleDeleteClick = () => {
-    if (fabricCanvas) {
-      const activeObject = fabricCanvas.getActiveObject();
-      if (activeObject) {
-        fabricCanvas.remove(activeObject);
-        fabricCanvas.requestRenderAll();
-        onObjectSelect(null);
-        setDeleteIconPosition(null);
-      }
-    }
-  };
-
   const handleDragStart = (tool) => {
     onToolChange(tool);
   };
@@ -1226,13 +1208,20 @@ useEffect(() => {
         }}
       >
         <canvas ref={canvasRef} className="block" />
-        {deleteIconPosition && (
+        {settingsIconPosition && (
           <button
-            onClick={handleDeleteClick}
-            className="absolute z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent canvas selection from clearing
+              setShowSettingsPanel(!showSettingsPanel);
+              setSettingsPanelPosition({
+                left: settingsIconPosition.left + 24, // Position to the right of the icon
+                top: settingsIconPosition.top,
+              });
+            }}
+            className="absolute z-50 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 shadow-lg transition-colors"
             style={{
-              left: `${deleteIconPosition.left}px`,
-              top: `${deleteIconPosition.top}px`,
+              left: `${settingsIconPosition.left}px`,
+              top: `${settingsIconPosition.top}px`,
             }}
           >
             <svg
@@ -1246,10 +1235,24 @@ useEffect(() => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
           </button>
+        )}
+        {showSettingsPanel && (
+          <ObjectSettingsPanel
+            fabricCanvas={fabricCanvas}
+            selectedObject={fabricCanvas?.getActiveObject()}
+            position={settingsPanelPosition}
+            onClose={() => setShowSettingsPanel(false)}
+          />
         )}
       </div>
       <ShapesPanel onDragStart={handleDragStart} />
