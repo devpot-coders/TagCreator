@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import List from "./pages/List";
 import StoreTags from "./pages/StoreTags";
 import EditorCanvas from "./pages/EditorCanvas";
+import Login from "./components/Auth/Login";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,9 @@ const App = () => (
             <Route index path="/" element={<EditorCanvas />} />
             <Route path="/list" element={<List />} />
             <Route path="/storetags" element={<StoreTags />} />
+
           </Route>
+            <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
