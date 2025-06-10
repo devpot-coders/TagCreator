@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Rect, Circle, Textbox, Polygon, Path, Line } from "fabric";
 import * as fabric from 'fabric';
+import ShapesPanel from './ShapesPanel';
 
 // Shape definitions
 const SHAPES = {
@@ -9,11 +10,11 @@ const SHAPES = {
     top,
     width: 100,
     height: 50,
-    fill: "#3b82f6",
-    stroke: "#1e40af",
+    fill: "#15D7FF",
+    stroke: "#15D7FF",
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#3b82f6",
+    cornerColor: "#15D7FF",
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
@@ -21,11 +22,11 @@ const SHAPES = {
     left,
     top,
     radius: 25,
-    fill: "#3b82f6",
-    stroke: "#1e40af",
+    fill: "#15D7FF",
+    stroke: "#15D7FF",
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#3b82f6",
+    cornerColor: "#15D7FF",
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
@@ -43,11 +44,11 @@ const SHAPES = {
       });
     }
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -59,11 +60,11 @@ const SHAPES = {
       { x: left + 100, y: top + 50 }
     ];
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -80,11 +81,11 @@ const SHAPES = {
       });
     }
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -101,11 +102,11 @@ const SHAPES = {
       });
     }
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -113,11 +114,11 @@ const SHAPES = {
   heart: (left, top) => {
     const pathData = `M ${left + 25} ${top + 20} C ${left + 25} ${top + 20}, ${left + 10} ${top}, ${left + 10} ${top + 10} C ${left + 10} ${top + 20}, ${left + 25} ${top + 30}, ${left + 25} ${top + 30} C ${left + 25} ${top + 30}, ${left + 40} ${top + 20}, ${left + 40} ${top + 10} C ${left + 40} ${top}, ${left + 25} ${top + 20}, ${left + 25} ${top + 20} Z`;
     return new Path(pathData, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -130,11 +131,11 @@ const SHAPES = {
       { x: left, y: top + 25 }
     ];
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -155,11 +156,11 @@ const SHAPES = {
       { x: left + 20, y: top + 20 }
     ];
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -180,11 +181,11 @@ const SHAPES = {
       { x: left + 10, y: top + 10 }
     ];
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -196,11 +197,183 @@ const SHAPES = {
       { x: left, y: top + 50 }
     ];
     return new Polygon(points, {
-      fill: "#3b82f6",
-      stroke: "#1e40af",
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
       strokeWidth: 1,
       transparentCorners: false,
-      cornerColor: "#3b82f6",
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  roundedRectangle: (left, top) => new Rect({
+    left,
+    top,
+    width: 100,
+    height: 50,
+    fill: "#15D7FF",
+    stroke: "#15D7FF",
+    strokeWidth: 1,
+    rx: 10,
+    ry: 10,
+    transparentCorners: false,
+    cornerColor: "#15D7FF",
+    cornerSize: 10,
+    hasRotatingPoint: true,
+  }),
+  cloud: (left, top) => {
+    const pathData = "M 221.78,92.51 C 205.15,92.51 191.56,106.1 191.56,122.73 C 191.56,123.01 191.59,123.29 191.59,123.57 C 185.06,120.35 178.69,119.78 172.58,121.28 C 163.63,123.51 158.41,130.04 156.44,138.86 C 153.22,136.27 149.33,134.82 145.44,134.82 C 137.66,134.82 131.63,140.85 131.63,148.62 C 131.63,148.62 131.63,148.62 131.63,148.62 C 131.63,156.4 137.66,162.43 145.44,162.43 C 145.44,162.43 145.44,162.43 145.44,162.43 C 153.22,162.43 159.25,156.4 159.25,148.62 C 159.25,148.62 159.25,148.62 159.25,148.62 C 163.63,153.64 169.37,157.6 175.79,157.6 C 183.05,157.6 189.65,152.09 191.56,145.49 C 195.45,147.24 200.73,148.62 206.58,148.62 C 218.42,148.62 228.02,139.02 228.02,127.18 C 228.02,127.18 228.02,127.18 228.02,127.18 C 228.02,115.34 218.42,105.74 206.58,105.74 C 206.58,105.74 206.58,105.74 206.58,105.74 C 214.36,105.74 220.39,99.71 220.39,91.93 C 220.39,91.93 220.39,91.93 220.39,91.93 C 220.39,84.15 214.36,78.12 206.58,78.12 C 206.58,78.12 206.58,78.12 206.58,78.12 C 206.58,70.35 212.61,64.32 220.39,64.32 C 220.39,64.32 220.39,64.32 220.39,64.32 C 228.17,64.32 234.2,70.35 234.2,78.12 C 234.2,78.12 234.2,78.12 234.2,78.12 C 234.2,85.9 228.17,91.93 220.39,91.93 C 220.39,91.93 220.39,91.93 220.39,91.93 Z";
+    const scale = 0.2; // Adjust scale as needed
+    return new Path(pathData, {
+      left,
+      top,
+      scaleX: scale,
+      scaleY: scale,
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1 / scale, // Adjust stroke width for scaling
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  cross2: (left, top) => {
+    const points = [
+      { x: left + 10, y: top },
+      { x: left + 15, y: top },
+      { x: left + 15, y: top + 10 },
+      { x: left + 25, y: top + 10 },
+      { x: left + 25, y: top + 15 },
+      { x: left + 15, y: top + 15 },
+      { x: left + 15, y: top + 25 },
+      { x: left + 10, y: top + 25 },
+      { x: left + 10, y: top + 15 },
+      { x: left, y: top + 15 },
+      { x: left, y: top + 10 },
+      { x: left + 10, y: top + 10 }
+    ];
+    return new Polygon(points, {
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  pentagon: (left, top) => {
+    const points = [];
+    const sides = 5;
+    const radius = 25;
+    for (let i = 0; i < sides; i++) {
+      const angle = (i * 2 * Math.PI) / sides;
+      points.push({
+        x: left + radius * Math.cos(angle),
+        y: top + radius * Math.sin(angle)
+      });
+    }
+    return new Polygon(points, {
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  heptagon: (left, top) => {
+    const points = [];
+    const sides = 7;
+    const radius = 25;
+    for (let i = 0; i < sides; i++) {
+      const angle = (i * 2 * Math.PI) / sides;
+      points.push({
+        x: left + radius * Math.cos(angle),
+        y: top + radius * Math.sin(angle)
+      });
+    }
+    return new Polygon(points, {
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  rightTriangle: (left, top) => {
+    const points = [
+      { x: left, y: top },
+      { x: left + 50, y: top },
+      { x: left, y: top + 50 }
+    ];
+    return new Polygon(points, {
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  roundedRectangle: (left, top) => new Rect({
+    left,
+    top,
+    width: 100,
+    height: 50,
+    fill: "#15D7FF",
+    stroke: "#15D7FF",
+    strokeWidth: 1,
+    rx: 10,
+    ry: 10,
+    transparentCorners: false,
+    cornerColor: "#15D7FF",
+    cornerSize: 10,
+    hasRotatingPoint: true,
+  }),
+  cloud: (left, top) => {
+    const pathData = "M 221.78,92.51 C 205.15,92.51 191.56,106.1 191.56,122.73 C 191.56,123.01 191.59,123.29 191.59,123.57 C 185.06,120.35 178.69,119.78 172.58,121.28 C 163.63,123.51 158.41,130.04 156.44,138.86 C 153.22,136.27 149.33,134.82 145.44,134.82 C 137.66,134.82 131.63,140.85 131.63,148.62 C 131.63,148.62 131.63,148.62 131.63,148.62 C 131.63,156.4 137.66,162.43 145.44,162.43 C 145.44,162.43 145.44,162.43 145.44,162.43 C 153.22,162.43 159.25,156.4 159.25,148.62 C 159.25,148.62 159.25,148.62 159.25,148.62 C 163.63,153.64 169.37,157.6 175.79,157.6 C 183.05,157.6 189.65,152.09 191.56,145.49 C 195.45,147.24 200.73,148.62 206.58,148.62 C 218.42,148.62 228.02,139.02 228.02,127.18 C 228.02,127.18 228.02,127.18 228.02,127.18 C 228.02,115.34 218.42,105.74 206.58,105.74 C 206.58,105.74 206.58,105.74 206.58,105.74 C 214.36,105.74 220.39,99.71 220.39,91.93 C 220.39,91.93 220.39,91.93 220.39,91.93 C 220.39,84.15 214.36,78.12 206.58,78.12 C 206.58,78.12 206.58,78.12 206.58,78.12 C 206.58,70.35 212.61,64.32 220.39,64.32 C 220.39,64.32 220.39,64.32 220.39,64.32 C 228.17,64.32 234.2,70.35 234.2,78.12 C 234.2,78.12 234.2,78.12 234.2,78.12 C 234.2,85.9 228.17,91.93 220.39,91.93 C 220.39,91.93 220.39,91.93 220.39,91.93 Z";
+    const scale = 0.2; // Adjust scale as needed
+    return new Path(pathData, {
+      left,
+      top,
+      scaleX: scale,
+      scaleY: scale,
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1 / scale, // Adjust stroke width for scaling
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+    });
+  },
+  cross2: (left, top) => {
+    const points = [
+      { x: left + 10, y: top },
+      { x: left + 15, y: top },
+      { x: left + 15, y: top + 10 },
+      { x: left + 25, y: top + 10 },
+      { x: left + 25, y: top + 15 },
+      { x: left + 15, y: top + 15 },
+      { x: left + 15, y: top + 25 },
+      { x: left + 10, y: top + 25 },
+      { x: left + 10, y: top + 15 },
+      { x: left, y: top + 15 },
+      { x: left, y: top + 10 },
+      { x: left + 10, y: top + 10 }
+    ];
+    return new Polygon(points, {
+      fill: "#15D7FF",
+      stroke: "#15D7FF",
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: "#15D7FF",
       cornerSize: 10,
       hasRotatingPoint: true,
     });
@@ -211,7 +384,7 @@ const SHAPES = {
 const ARROWS = {
   config: {
     defaultSize: 100,
-    defaultColor: '#3b82f6',
+    defaultColor: '#15D7FF',
     headLengthRatio: 0.5,
     stemWidthRatio: 0.2,
     diagonalStemWidthRatio: 0.2
@@ -219,7 +392,7 @@ const ARROWS = {
   getArrowOptions: function(color) {
     return {
       fill: color,
-      stroke: this.darkenColor(color),
+      stroke: color,
       strokeWidth: 1,
       transparentCorners: false,
       cornerColor: color,
@@ -758,28 +931,13 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
           } else {
             console.error('Failed to create arrow');
           }
-        } else if (activeTool === "text") {
-          const text = new Textbox("Enter text", {
-            left: e.pointer.x,
-            top: e.pointer.y,
-            fontSize: 16,
-            fill: "#000000",
-            fontFamily: "Arial",
-            transparentCorners: false,
-            cornerColor: "#000000",
-            cornerSize: 10,
-            hasRotatingPoint: true,
-          });
-          fabricCanvas.add(text);
-          fabricCanvas.setActiveObject(text);
-          text.enterEditing();
         }
       } catch (error) {
         console.error('Error in handleClick:', error);
       }
     };
     
-    if (activeTool !== "select") {
+    if (activeTool !== "select" && activeTool !== "text") {
       fabricCanvas.on("mouse:down", handleClick);
     }
 
@@ -788,13 +946,184 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
     };
   }, [activeTool, fabricCanvas, onToolChange, selectedImage]);
 
+  // Add text tool selection functionality
+  // Update the text tool useEffect in your DesignCanvas component
+useEffect(() => {
+  if (!fabricCanvas || activeTool !== "text") return;
+
+  let isSelecting = false;
+  let startPoint = null;
+  let selectionRect = null;
+
+  const handleMouseDown = (e) => {
+    if (fabricCanvas.getActiveObject()) return;
+    
+    isSelecting = true;
+    startPoint = e.pointer;
+    
+    selectionRect = new Rect({
+      left: startPoint.x,
+      top: startPoint.y,
+      width: 0,
+      height: 0,
+      fill: 'rgba(0, 0, 0, 0.1)',
+      stroke: '#000000',
+      strokeWidth: 1,
+      selectable: false,
+      evented: false
+    });
+    
+    fabricCanvas.add(selectionRect);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isSelecting || !selectionRect) return;
+    
+    const currentPoint = e.pointer;
+    const width = Math.abs(currentPoint.x - startPoint.x);
+    const height = Math.abs(currentPoint.y - startPoint.y);
+    
+    selectionRect.set({
+      width: width,
+      height: height,
+      left: Math.min(startPoint.x, currentPoint.x),
+      top: Math.min(startPoint.y, currentPoint.y)
+    });
+    
+    fabricCanvas.requestRenderAll();
+  };
+
+  const handleMouseUp = () => {
+    if (!isSelecting || !selectionRect) return;
+    
+    isSelecting = false;
+    
+    // Get the exact dimensions of the selection
+    const selectedWidth = selectionRect.width;
+    const selectedHeight = selectionRect.height;
+    const selectedLeft = selectionRect.left;
+    const selectedTop = selectionRect.top;
+    
+    // Remove the selection rectangle
+    fabricCanvas.remove(selectionRect);
+    
+    // Create textbox with fixed dimensions
+    const textbox = new Textbox("", {
+      left: selectedLeft,
+      top: selectedTop,
+      width: selectedWidth,
+      height: selectedHeight,
+      fontSize: 16,
+      fill: "#000000",
+      fontFamily: "Arial",
+      transparentCorners: false,
+      cornerColor: "#000000",
+      cornerSize: 10,
+      hasRotatingPoint: true,
+      selectable: true,
+      editable: true,
+      textAlign: 'left',
+      // Critical properties to maintain dimensions:
+      lockScalingX: true,       // Prevent horizontal scaling
+      lockScalingY: true,       // Prevent vertical scaling
+      lockUniScaling: true,     // Prevent uniform scaling
+      splitByGrapheme: true,    // Better text handling
+      fixedWidth: selectedWidth, // Explicit fixed width
+      fixedHeight: selectedHeight, // Explicit fixed height
+      autoResize: false,        // Prevent auto-resizing
+      // Visual overflow handling:
+      overflow: "scroll",      // Hide text that overflows
+      clipTo: function(ctx) {   // Clip text to the bounds
+        ctx.rect(
+          -this.width / 2,
+          -this.height / 2,
+          this.width,
+          this.height
+        );
+      }
+    });
+
+    // Force the height immediately after creation
+    textbox.set({
+      height: selectedHeight,
+      scaleY: 1
+    });
+
+    // Add event handlers to maintain dimensions
+    textbox.on('changed', function() {
+      // Force maintain original dimensions
+      this.set({
+        height: selectedHeight,
+        scaleY: 1
+      });
+    });
+
+    textbox.on('scaling', function() {
+      // Immediately reset any scaling attempts
+      this.set({
+        height: selectedHeight,
+        scaleY: 1
+      });
+    });
+
+    // Add to canvas and set active
+    fabricCanvas.add(textbox);
+    fabricCanvas.setActiveObject(textbox);
+    
+    // Switch to select tool and enter editing
+    onToolChange("select");
+    textbox.enterEditing();
+    
+    // Focus the textbox immediately
+    textbox.hiddenTextarea.focus();
+    
+    fabricCanvas.requestRenderAll();
+  };
+
+  fabricCanvas.on("mouse:down", handleMouseDown);
+  fabricCanvas.on("mouse:move", handleMouseMove);
+  fabricCanvas.on("mouse:up", handleMouseUp);
+
+  return () => {
+    fabricCanvas.off("mouse:down", handleMouseDown);
+    fabricCanvas.off("mouse:move", handleMouseMove);
+    fabricCanvas.off("mouse:up", handleMouseUp);
+  };
+}, [activeTool, fabricCanvas]);
+
+  // Add drawing functionality
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    // Initialize free drawing brush
+    fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
+    fabricCanvas.freeDrawingBrush.color = "#000000";
+    fabricCanvas.freeDrawingBrush.width = 2;
+
+    if (activeTool === "pencil") {
+      fabricCanvas.isDrawingMode = true;
+    } else {
+      fabricCanvas.isDrawingMode = false;
+    }
+
+    return () => {
+      fabricCanvas.isDrawingMode = false;
+    };
+  }, [activeTool, fabricCanvas]);
+
   // Add keyboard shortcuts for delete and other operations
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const handleKeyDown = (e) => {
+      const activeObject = fabricCanvas.getActiveObject();
+      
+      // If we're editing text, don't handle delete/backspace
+      if (activeObject && activeObject.isEditing) {
+        return;
+      }
+
       if (e.key === "Delete" || e.key === "Backspace") {
-        const activeObject = fabricCanvas.getActiveObject();
         if (activeObject) {
           fabricCanvas.remove(activeObject);
           fabricCanvas.requestRenderAll();
@@ -865,34 +1194,65 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
     }
   };
 
+  const handleDragStart = (tool) => {
+    onToolChange(tool);
+  };
+
   return (
-    <div className="border border-border rounded-lg shadow-lg bg-white relative">
-      <canvas ref={canvasRef} className="block" />
-      {deleteIconPosition && (
-        <button
-          onClick={handleDeleteClick}
-          className="absolute z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
-          style={{
-            left: `${deleteIconPosition.left}px`,
-            top: `${deleteIconPosition.top}px`,
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+    <div className="flex w-full">
+      <div
+        className="border border-border rounded-lg shadow-lg bg-white relative flex-1"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const tool = e.dataTransfer.getData("tool");
+          if (fabricCanvas && (SHAPES[tool] || ARROWS[tool])) {
+            const pointer = fabricCanvas.getPointer(e);
+            const left = pointer.x;
+            const top = pointer.y;
+
+            if (SHAPES[tool]) {
+              const shape = SHAPES[tool](left - 25, top - 25);
+              fabricCanvas.add(shape);
+              fabricCanvas.setActiveObject(shape);
+            } else if (ARROWS[tool]) {
+              const arrow = ARROWS[tool](left - 25, top - 25);
+              fabricCanvas.add(arrow);
+              fabricCanvas.setActiveObject(arrow);
+            }
+            fabricCanvas.requestRenderAll();
+            onToolChange("select");
+          }
+        }}
+      >
+        <canvas ref={canvasRef} className="block" />
+        {deleteIconPosition && (
+          <button
+            onClick={handleDeleteClick}
+            className="absolute z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
+            style={{
+              left: `${deleteIconPosition.left}px`,
+              top: `${deleteIconPosition.top}px`,
+            }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
-      )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+      <ShapesPanel onDragStart={handleDragStart} />
     </div>
   );
 };

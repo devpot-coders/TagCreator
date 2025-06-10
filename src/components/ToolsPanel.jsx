@@ -123,8 +123,8 @@ export const ToolsPanel = ({
 
   return (
     <div className="border-b bg-background p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className=" mt-8">
+        <div className="flex flex-col items-end justify-end gap-3 space-x-2">
           {tools.map((tool) => (
             <Button
               key={tool.id}
@@ -134,14 +134,14 @@ export const ToolsPanel = ({
               className="flex items-center space-x-1"
             >
               <tool.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{tool.label}</span>
+              {/* <span className="hidden sm:inline">{tool.label}</span> */}
             </Button>
           ))}
 
           <Separator orientation="vertical" className="h-6" />
 
           {/* Basic Shapes Dropdown */}
-          <DropdownMenu open={basicShapesOpen} onOpenChange={setBasicShapesOpen}>
+          {/* <DropdownMenu open={basicShapesOpen} onOpenChange={setBasicShapesOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant={selectedBasicShape ? "default" : "outline"}
@@ -171,10 +171,10 @@ export const ToolsPanel = ({
                 </div>
               </DropdownMenuGroup>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
           {/* Arrows Dropdown */}
-          <DropdownMenu open={arrowsOpen} onOpenChange={setArrowsOpen}>
+          {/* <DropdownMenu open={arrowsOpen} onOpenChange={setArrowsOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant={selectedArrow ? "default" : "outline"}
@@ -204,12 +204,12 @@ export const ToolsPanel = ({
                 </div>
               </DropdownMenuGroup>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
           <Separator orientation="vertical" className="h-6" />
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <Label htmlFor="width" className="text-sm">Width:</Label>
             <Input
@@ -236,7 +236,7 @@ export const ToolsPanel = ({
               className="w-20 h-8"
             />
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
