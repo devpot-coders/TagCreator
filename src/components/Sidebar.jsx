@@ -8,7 +8,11 @@ import {
   ChevronDown,
   Plus,
   Minus,
-  X
+  X,
+  Pen,
+  Tag,
+  List,
+  LogOut
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,7 +22,8 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-
+import { Link, NavLink } from "react-router-dom";
+  
 export const Sidebar = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
@@ -35,16 +40,15 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="w-64 border-r bg-background flex flex-col">
+    <div className="w-38 border-r bg-[#F09536] flex flex-col">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
           {/* Templates Section */}
           <div>
-            <h3 className="font-medium text-sm text-muted-foreground mb-3">Templates</h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  {selectedTemplate ? selectedTemplate.name : "Select Template"}
+                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                  {selectedTemplate ? selectedTemplate.name : "New"}
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -68,25 +72,43 @@ export const Sidebar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          <div>
+              <NavLink to={"/list"}>
+                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                  <List/>
+              List
+                </Button>
+              </NavLink>
+          </div>
+          <div>
+              <NavLink to={"/storetags"}>
+                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                  <Tag/>
+              Store Tags
+                </Button>
+              </NavLink>
+          </div>
+          <div>
+                <NavLink to={"/"}>
+                  <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                  <Pen />
+                  Editor
+                  </Button>
+                </NavLink>
+          </div>
 
           <Separator />
 
-          {/* Elements Section */}
-          <div>
-            <h3 className="font-medium text-sm text-muted-foreground mb-3">Elements</h3>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Type className="h-4 w-4 mr-2" />
-                Text
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Image className="h-4 w-4 mr-2" />
-                Image
-              </Button>
-            </div>
-          </div>
         </div>
       </ScrollArea>
+        <div className=" p-4">
+                <NavLink to={"/login"}>
+                  <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                  <LogOut />
+                  Logout
+                  </Button>
+                </NavLink>
+          </div>
     </div>
   );
 };
