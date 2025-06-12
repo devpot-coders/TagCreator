@@ -2,31 +2,32 @@ import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Rect, Circle, Textbox, Polygon, Path, Line } from "fabric";
 import * as fabric from 'fabric';
 import ShapesPanel from './ShapesPanel';
+import ObjectSettingsPanel from './ObjectSettingsPanel';
 
 // Shape definitions
 const SHAPES = {
-  rectangle: (left, top) => new Rect({
+  rectangle: (left, top, fillColor = "#15D7FF") => new Rect({
     left,
     top,
     width: 100,
     height: 50,
-    fill: "#15D7FF",
-    stroke: "#15D7FF",
+    fill: fillColor,
+    stroke: 'transparent',
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#15D7FF",
+    cornerColor: fillColor,
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
-  circle: (left, top) => new Circle({
+  circle: (left, top, fillColor = "#15D7FF") => new Circle({
     left,
     top,
     radius: 25,
-    fill: "#15D7FF",
-    stroke: "#15D7FF",
+    fill: fillColor,
+    stroke: 'transparent',
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#15D7FF",
+    cornerColor: fillColor,
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
@@ -627,31 +628,43 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 }
 };
 
-export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolChange, selectedImage }) => {
+export const DesignCanvas = ({
+  activeTool,
+  canvasSize,
+  onObjectSelect,
+  onToolChange,
+  selectedImage,
+  onCanvasReady
+}) => {
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
   
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [deleteIconPosition, setDeleteIconPosition] = useState(null);
+  const [settingsIconPosition, setSettingsIconPosition] = useState(null);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [settingsPanelPosition, setSettingsPanelPosition] = useState(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    try {
-      const canvas = new fabric.Canvas(canvasRef.current, {
+    if (canvasRef.current) {
+      const canvas = new FabricCanvas(canvasRef.current, {
         width: canvasSize.width,
         height: canvasSize.height,
         backgroundColor: "#ffffff",
-        preserveObjectStacking: true,
       });
-
+  
+      // Expose the fabric canvas instance to the canvas element
+      canvasRef.current.fabricCanvas = canvas;
+  
+      // Pass the canvas instance to the parent
+      onCanvasReady?.(canvas);
+  
       // Add grid
-      const gridSize = 24;
-      const gridColor = "#e5e7eb";
+      const gridSize = 24; // Size of each grid square
+      const gridColor = "#e5e7eb"; // Light gray color for grid lines
       const gridWidth = canvas.width;
       const gridHeight = canvas.height;
-
+  
       // Draw vertical grid lines
       for (let i = 0; i <= gridWidth; i += gridSize) {
         canvas.add(new Line([i, 0, i, gridHeight], {
@@ -660,7 +673,7 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
           evented: false,
         }));
       }
-
+  
       // Draw horizontal grid lines
       for (let i = 0; i <= gridHeight; i += gridSize) {
         canvas.add(new Line([0, i, gridWidth, i], {
@@ -669,13 +682,13 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
           evented: false,
         }));
       }
-
+  
       // Add rulers
-      const rulerSize = 20;
-      const rulerColor = "#9ca3af";
-      const rulerBg = "#f3f4f6";
-
-      // Horizontal ruler
+      const rulerSize = 20; // Height of horizontal ruler, width of vertical ruler
+      const rulerColor = "#000000"; // Gray color for ruler text
+      const rulerBg = "#f3f4f6"; // Light gray background for rulers
+  
+      // Horizontal ruler (top)
       const horizontalRuler = new Rect({
         left: 0,
         top: -rulerSize,
@@ -686,8 +699,8 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         evented: false,
       });
       canvas.add(horizontalRuler);
-
-      // Vertical ruler
+  
+      // Vertical ruler (left)
       const verticalRuler = new Rect({
         left: -rulerSize,
         top: 0,
@@ -698,11 +711,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         evented: false,
       });
       canvas.add(verticalRuler);
-
-      // Add ruler measurements
+  
+      // Add ruler measurements (numbers)
+      // Horizontal ruler numbers
       for (let i = 0; i <= gridWidth; i += gridSize) {
         const text = new Textbox(i.toString(), {
-          left: i - 5,
+          left: i - 5, // Center the number
           top: -rulerSize + 5,
           fontSize: 10,
           fill: rulerColor,
@@ -713,11 +727,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         });
         canvas.add(text);
       }
-
+  
+      // Vertical ruler numbers
       for (let i = 0; i <= gridHeight; i += gridSize) {
         const text = new Textbox(i.toString(), {
           left: -rulerSize + 5,
-          top: i - 5,
+          top: i - 5, // Center the number
           fontSize: 10,
           fill: rulerColor,
           selectable: false,
@@ -727,7 +742,6 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         });
         canvas.add(text);
       }
-
       // Initialize history stack
       canvas.history = {
         undo: [],
@@ -748,13 +762,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         onObjectSelect(e.selected?.[0]);
         if (e.selected?.[0]) {
           const obj = e.selected[0];
-          const width = obj.width * (obj.scaleX || 1);
-          setDeleteIconPosition({
-            left: obj.left + width + 10,
-            top: obj.top - 10
+          setSettingsIconPosition({
+            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
+            top: obj.getBoundingRect().top - 10
           });
         } else {
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       });
 
@@ -762,29 +775,27 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         onObjectSelect(e.selected?.[0]);
         if (e.selected?.[0]) {
           const obj = e.selected[0];
-          const width = obj.width * (obj.scaleX || 1);
-          setDeleteIconPosition({
-            left: obj.left + width + 10,
-            top: obj.top - 10
+          setSettingsIconPosition({
+            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
+            top: obj.getBoundingRect().top - 10
           });
         } else {
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       });
 
       canvas.on("selection:cleared", () => {
         onObjectSelect(null);
-        setDeleteIconPosition(null);
+        setSettingsIconPosition(null);
       });
 
       // Track all object modifications
       canvas.on("object:modified", (e) => {
         onObjectSelect(e.target);
         if (e.target) {
-          const width = e.target.width * (e.target.scaleX || 1);
-          setDeleteIconPosition({
-            left: e.target.left + width + 10,
-            top: e.target.top - 10
+          setSettingsIconPosition({
+            left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+            top: e.target.getBoundingRect().top - 10
           });
         }
         saveState();
@@ -795,10 +806,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
+            setSettingsIconPosition({
+              left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+              top: e.target.getBoundingRect().top - 10
             });
           }
         }
@@ -809,10 +819,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
+            setSettingsIconPosition({
+              left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
+              top: e.target.getBoundingRect().top - 10
             });
           }
         }
@@ -823,11 +832,7 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         if (e.target) {
           saveState();
           if (e.target === canvas.getActiveObject()) {
-            const width = e.target.width * (e.target.scaleX || 1);
-            setDeleteIconPosition({
-              left: e.target.left + width + 10,
-              top: e.target.top - 10
-            });
+            setSettingsIconPosition(null);
           }
         }
       });
@@ -843,14 +848,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
       canvas.on("object:added", saveState);
       canvas.on("object:removed", saveState);
 
-      // Expose the fabric canvas instance to the canvas element
-      canvasRef.current.fabricCanvas = canvas;
-
       setFabricCanvas(canvas);
-    } catch (error) {
-      console.error('Error initializing canvas:', error);
     }
-  }, []);
+  }, [canvasSize.width, canvasSize.height]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -887,9 +887,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
       fabricCanvas.setActiveObject(fabricImg);
       fabricCanvas.requestRenderAll();
   
-      setDeleteIconPosition({
-        left: fabricImg.left + (fabricImg.width * fabricImg.scaleX) + 10,
-        top: fabricImg.top - 10
+      setSettingsIconPosition({
+        left: fabricImg.getBoundingRect().left + fabricImg.getBoundingRect().width - 12,
+        top: fabricImg.getBoundingRect().top - 10
       });
   
       onToolChange("select");
@@ -1091,6 +1091,76 @@ useEffect(() => {
   };
 }, [activeTool, fabricCanvas]);
 
+  // Add line tool functionality
+  useEffect(() => {
+    if (!fabricCanvas || activeTool !== "line") return;
+
+    let isDrawing = false;
+    let line = null;
+
+    const handleMouseDown = (e) => {
+      if (fabricCanvas.getActiveObject()) return;
+      
+      isDrawing = true;
+      const pointer = fabricCanvas.getPointer(e.e);
+      
+      line = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+        stroke: "#15D7FF",
+        strokeWidth: 2,
+        selectable: true,
+        transparentCorners: false,
+        cornerColor: "#15D7FF",
+        cornerSize: 10,
+        hasRotatingPoint: true,
+      });
+      
+      fabricCanvas.add(line);
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDrawing || !line) return;
+      
+      const pointer = fabricCanvas.getPointer(e.e);
+      line.set({
+        x2: pointer.x,
+        y2: pointer.y
+      });
+      
+      fabricCanvas.requestRenderAll();
+    };
+
+    const handleMouseUp = () => {
+      if (!isDrawing || !line) return;
+      
+      isDrawing = false;
+      
+      // If the line is too short, remove it
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      if (length < 5) {
+        fabricCanvas.remove(line);
+      } else {
+        // Switch to select tool after drawing a valid line
+        onToolChange("select");
+      }
+      
+      line = null;
+      fabricCanvas.requestRenderAll();
+    };
+
+    fabricCanvas.on("mouse:down", handleMouseDown);
+    fabricCanvas.on("mouse:move", handleMouseMove);
+    fabricCanvas.on("mouse:up", handleMouseUp);
+
+    return () => {
+      fabricCanvas.off("mouse:down", handleMouseDown);
+      fabricCanvas.off("mouse:move", handleMouseMove);
+      fabricCanvas.off("mouse:up", handleMouseUp);
+    };
+  }, [activeTool, fabricCanvas]);
+
   // Add drawing functionality
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -1128,7 +1198,7 @@ useEffect(() => {
           fabricCanvas.remove(activeObject);
           fabricCanvas.requestRenderAll();
           onObjectSelect(null);
-          setDeleteIconPosition(null);
+          setSettingsIconPosition(null);
         }
       }
     };
@@ -1182,24 +1252,22 @@ useEffect(() => {
     }
   }, [fabricCanvas, canUndo, canRedo]);
 
-  const handleDeleteClick = () => {
-    if (fabricCanvas) {
-      const activeObject = fabricCanvas.getActiveObject();
-      if (activeObject) {
-        fabricCanvas.remove(activeObject);
-        fabricCanvas.requestRenderAll();
-        onObjectSelect(null);
-        setDeleteIconPosition(null);
-      }
-    }
-  };
-
   const handleDragStart = (tool) => {
     onToolChange(tool);
   };
 
+  const handleCanvasClick = (e) => {
+    if (activeTool === "shape" && selectedShape) {
+      const pointer = fabricCanvas.getPointer(e.e);
+      const shape = SHAPES[selectedShape](pointer.x, pointer.y, fillColor);
+      fabricCanvas.add(shape);
+      fabricCanvas.setActiveObject(shape);
+      fabricCanvas.requestRenderAll();
+    }
+  };
+
   return (
-    <div className="flex w-full">
+    <div className="flex h-full w-full">
       <div
         className="border border-border rounded-lg shadow-lg bg-white relative flex-1"
         onDragOver={(e) => e.preventDefault()}
@@ -1226,13 +1294,20 @@ useEffect(() => {
         }}
       >
         <canvas ref={canvasRef} className="block" />
-        {deleteIconPosition && (
+        {settingsIconPosition && (
           <button
-            onClick={handleDeleteClick}
-            className="absolute z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent canvas selection from clearing
+              setShowSettingsPanel(!showSettingsPanel);
+              setSettingsPanelPosition({
+                left: settingsIconPosition.left + 24, // Position to the right of the icon
+                top: settingsIconPosition.top,
+              });
+            }}
+            className="absolute z-50 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 shadow-lg transition-colors"
             style={{
-              left: `${deleteIconPosition.left}px`,
-              top: `${deleteIconPosition.top}px`,
+              left: `${settingsIconPosition.left}px`,
+              top: `${settingsIconPosition.top}px`,
             }}
           >
             <svg
@@ -1246,10 +1321,24 @@ useEffect(() => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
           </button>
+        )}
+        {showSettingsPanel && (
+          <ObjectSettingsPanel
+            fabricCanvas={fabricCanvas}
+            selectedObject={fabricCanvas?.getActiveObject()}
+            position={settingsPanelPosition}
+            onClose={() => setShowSettingsPanel(false)}
+          />
         )}
       </div>
       <ShapesPanel onDragStart={handleDragStart} />

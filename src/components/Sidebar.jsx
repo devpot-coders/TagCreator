@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
   DropdownMenuLabel,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
@@ -27,10 +28,19 @@ import { Link, NavLink } from "react-router-dom";
 export const Sidebar = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
-  const templates = [
-    { id: 1, name: "Product Tag", size: "4x2 in" },
-    { id: 2, name: "Price Tag", size: "3x1.5 in" },
-    { id: 3, name: "Name Tag", size: "3.5x2.25 in" },
+  const newOptions = [
+    "1UP",
+    "1UP (LEGAL)",
+    "2UP",
+    "4UP",
+    "4UP(4.25 X 5.1)",
+    "8UP",
+    "16UP",
+    "16UP",
+    "Avery 5160",
+    "Avery 5163",
+    "Two Page",
+    "Full Page",
   ];
 
   const handleTemplateSelect = (template) => {
@@ -48,26 +58,19 @@ export const Sidebar = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
-                  {selectedTemplate ? selectedTemplate.name : "New"}
+                  New
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                {templates.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant="ghost"
-                    className="w-full justify-start h-auto p-3 flex-col items-start"
-                    onClick={() => handleTemplateSelect(template)}
+              <DropdownMenuContent className="w-56 ms-3">
+                {newOptions.map((option, idx) => (
+                  <DropdownMenuItem 
+                    key={option + idx} 
+                    className="flex items-center gap-1 text-base py-2.5 hover:bg-[#F09536] hover:text-white transition-colors duration-200"
                   >
-                    <div className="w-full aspect-[2/1] bg-muted rounded mb-2"></div>
-                    <div className="text-left">
-                      <div className="font-medium text-sm">{template.name}</div>
-                      <Badge variant="secondary" className="text-xs mt-1">
-                        {template.size}
-                      </Badge>
-                    </div>
-                  </Button>
+                    <Plus className="w-5 h-5" />
+                    {option}
+                  </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
