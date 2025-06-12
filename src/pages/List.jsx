@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const tagData = [
@@ -358,7 +358,20 @@ function List() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const headerRefs = useRef({});
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+
+  // State for delete confirmation popup
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Handle delete confirmation
+  const handleDelete = useCallback(() => {
+    console.log("Deleting item (API call would go here):", itemToDelete);
+    // In a real application, you would make an API call here to delete the item.
+    // After successful deletion, you would then update your state (e.g., refetch data).
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
+  }, [itemToDelete]);
 
   // Get unique values
   const uniqueTitles = Array.from(new Set(tagData.map((tag) => tag.title)));
@@ -646,6 +659,55 @@ function List() {
     modifiedDateCombiner,
     modifierCombiner,
     tagData,
+  ]);
+
+  // Add useEffect for checkbox filtering
+  useEffect(() => {
+    let currentFilteredList = tagData;
+
+    // Apply title checkbox filter
+    if (selectedTitles.length > 0) {
+      currentFilteredList = currentFilteredList.filter((tag) =>
+        selectedTitles.includes(tag.title)
+      );
+    }
+
+    // Apply creator checkbox filter
+    if (selectedCreators.length > 0) {
+      currentFilteredList = currentFilteredList.filter((tag) =>
+        selectedCreators.includes(tag.createdBy)
+      );
+    }
+
+    // Apply date checkbox filter
+    if (selectedDates.length > 0) {
+      currentFilteredList = currentFilteredList.filter((tag) =>
+        selectedDates.includes(tag.dateCreated)
+      );
+    }
+
+    // Apply modified date checkbox filter
+    if (selectedModifiedDates.length > 0) {
+      currentFilteredList = currentFilteredList.filter((tag) =>
+        selectedModifiedDates.includes(tag.dateModified)
+      );
+    }
+
+    // Apply modifier checkbox filter
+    if (selectedModifiers.length > 0) {
+      currentFilteredList = currentFilteredList.filter((tag) =>
+        selectedModifiers.includes(tag.modifiedBy)
+      );
+    }
+
+    setFilteredTagList(currentFilteredList);
+  }, [
+    selectedTitles,
+    selectedCreators,
+    selectedDates,
+    selectedModifiedDates,
+    selectedModifiers,
+    tagData
   ]);
 
   const applyCondition = useCallback((value, query, condition) => {
@@ -1052,7 +1114,13 @@ function List() {
                 </TableCell>
 
                 <TableCell>
-                  <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
+                  <Button
+                    className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition"
+                    onClick={() => {
+                      setItemToDelete(tag.title);
+                      setShowDeleteConfirm(true);
+                    }}
+                  >
                     <FiTrash2 className="text-sm" />
                     Delete
                   </Button>
@@ -1067,6 +1135,36 @@ function List() {
       {renderDropdown("dateCreated")}
       {renderDropdown("dateModified")}
       {renderDropdown("modifiedBy")}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10001] shadow-4xl">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-[300px]">
+            <div className="flex justify-between items-center mb-4 border-b pb-1">
+              <h3 className="text-lg font-medium text-black dark:text-white ">Confirm Delete</h3>
+              <button onClick={() => setShowDeleteConfirm(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+              <HelpCircle className="h-10 w-10 text-blue-500" />
+              <p className="text-black dark:text-white">Delete the template {itemToDelete}?</p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                className="bg-gray-300 text-black py-0.5 h-[2rem] px-8 rounded hover:bg-gray-400"
+                onClick={handleDelete}
+              >
+                Yes
+              </Button>
+              <Button
+                className="bg-gray-300 text-black  py-0.5 h-[2rem] px-8 rounded hover:bg-gray-400"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                No
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
