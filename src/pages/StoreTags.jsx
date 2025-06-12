@@ -8,9 +8,11 @@ import {
   FiCheck,
   FiSquare,
   FiX,
+  FiDownload,
 } from "react-icons/fi";
 import { Button } from "../components/ui/button";
 import { FaSortUp, FaSortDown } from "react-icons/fa";
+import PrintSettingsPopup from "../components/PrintSettingPopup";
 
 function StoreTags() {
   const tagData = [
@@ -95,6 +97,15 @@ function StoreTags() {
   const [createdByCondition2, setCreatedByCondition2] = useState("Is equal to");
   const [createdByCombiner, setCreatedByCombiner] = useState("And");
 
+  // State for Print Settings Popup
+  const [showPrintSettingsPopup, setShowPrintSettingsPopup] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // You can adjust this value
+  const [selectedTableRows, setSelectedTableRows] = useState([]); // New state for selected table rows
+  const [searchQuery, setSearchQuery] = useState(""); // New state for search query
+
   const uniqueTitles = Array.from(new Set(tagData.map((tag) => tag.title)));
   const allSelTitlesSelected = selectedTitles.length === uniqueTitles.length;
 
@@ -115,6 +126,31 @@ function StoreTags() {
 
   const uniqueCreatedBy = Array.from(new Set(tagData.map((tag) => tag.createdBy)));
   const allCreatedBySelected = selectedCreatedBy.length === uniqueCreatedBy.length;
+
+  const totalPages = Math.ceil(filteredTagList.length / itemsPerPage);
+
+  const currentItems = filteredTagList.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Handle checkbox change for individual table rows
+  const handleTableRowCheckboxChange = useCallback((title) => {
+    setSelectedTableRows(prev =>
+      prev.includes(title) ? prev.filter(item => item !== title) : [...prev, title]
+    );
+  }, []);
+
+  // Handle global Select All for table rows
+  const handleSelectAllTableRows = useCallback(() => {
+    const allCurrentPageTitles = currentItems.map(item => item.title);
+    setSelectedTableRows(allCurrentPageTitles);
+  }, [currentItems]);
+
+  // Handle global Deselect All for table rows
+  const handleDeselectAllTableRows = useCallback(() => {
+    setSelectedTableRows([]);
+  }, []);
 
   const applyCondition = useCallback((value, query, condition) => {
     const lowerCaseValue = value.toLowerCase();
@@ -558,6 +594,65 @@ function StoreTags() {
     setShowCreatedByFilterDropdown(false);
   }, []);
 
+  // Handle search functionality
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when searching
+    
+    if (!query.trim()) {
+      setFilteredTagList(tagData);
+      return;
+    }
+
+    const searchResults = tagData.filter((tag) => {
+      const searchableFields = [
+        tag.title,
+        tag.createdBy,
+        tag.dateCreated,
+        tag.dateModified,
+        tag.modifiedBy
+      ];
+      
+      return searchableFields.some(field => 
+        field.toLowerCase().includes(query.toLowerCase())
+      );
+    });
+
+    setFilteredTagList(searchResults);
+  }, [tagData]);
+
+  // Handle refresh functionality
+  const handleRefresh = useCallback(() => {
+    setFilteredTagList(tagData);
+    setSearchQuery("");
+    setCurrentPage(1);
+    setSelectedTableRows([]);
+    setSelectedTitles([]);
+    setSelectedBCs([]);
+    setSelectedItems([]);
+    setSelectedDescriptions([]);
+    setSelectedTemplates([]);
+    setSelectedDateCreated([]);
+    setSelectedCreatedBy([]);
+  }, [tagData]);
+
+  // Handle opening the print settings popup
+  const handleOpenPrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(true);
+  }, []);
+
+  // Handle closing the print settings popup
+  const handleClosePrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(false);
+  }, []);
+
+  // Handle saving print settings (you can implement actual save logic here)
+  const handleSavePrintSettings = useCallback((settings) => {
+    console.log("Saved Print Settings:", settings);
+    // Here you would typically send these settings to a backend or use them locally
+    // For now, we'll just log them to the console.
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 w-full">
       {/* Top Filters */}
@@ -575,24 +670,35 @@ function StoreTags() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button className="bg-green-400 hover:text-white hover:bg-green-400 text-black px-3 py-1 flex items-center gap-1 rounded shadow">
+          <Button 
+            className="bg-green-400 hover:text-white hover:bg-green-400 text-black px-3 py-1 flex items-center gap-1 rounded shadow"
+            onClick={handleRefresh}
+          >
             <FiRefreshCw /> Refresh
           </Button>
           <div className="flex items-center border px-2">
             <FiSearch className="text-gray-500" />
             <input
               type="text"
-              placeholder=""
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
               className="border-0 focus:outline-none px-2 py-1 text-sm bg-transparent"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="border px-3 py-1 text-sm flex items-center gap-1">
+          <button 
+            className="border px-3 py-1 text-sm flex items-center gap-1"
+            onClick={handleSelectAllTableRows}
+          >
             <FiCheck /> Select All
           </button>
-          <button className="border px-3 py-1 text-sm flex items-center gap-1">
+          <button 
+            className="border px-3 py-1 text-sm flex items-center gap-1"
+            onClick={handleDeselectAllTableRows}
+          >
             <FiSquare /> Deselect All
           </button>
         </div>
@@ -665,10 +771,7 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Template") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setTemplateDropdownPosition({
-                          top: rect.bottom + window.scrollY - 8,
-                          left: rect.left + window.scrollX,
-                        });
+                        setTemplateDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
                         setShowTemplateFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -678,10 +781,7 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Date Created") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setDateCreatedDropdownPosition({
-                          top: rect.bottom + window.scrollY - 8,
-                          left: rect.left + window.scrollX,
-                        });
+                        setDateCreatedDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
                         setShowDateCreatedFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -691,10 +791,7 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Created By") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setCreatedByDropdownPosition({
-                          top: rect.bottom + window.scrollY - 8,
-                          left: rect.left + window.scrollX,
-                        });
+                        setCreatedByDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
                         setShowCreatedByFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -1506,10 +1603,15 @@ function StoreTags() {
             </tr>
           </thead>
           <tbody>
-            {filteredTagList.map((tag, index) => (
+            {currentItems.map((tag, index) => (
               <tr key={index}>
                 <td className="px-2 py-2 border-r">
-                  {/* <input type="checkbox" /> */}
+                  <input
+                    type="checkbox"
+                    checked={selectedTableRows.includes(tag.title)}
+                    onChange={() => handleTableRowCheckboxChange(tag.title)}
+                    className="h-4 w-4 shadow-sm"
+                  />
                 </td>
                 <td className="px-2 py-2 border-r">{tag.title}</td>
                 <td className="px-2 py-2 border-r">{tag.createdBy}</td>
@@ -1522,39 +1624,83 @@ function StoreTags() {
           </tbody>
         </table>
         <div className="flex justify-end items-center px-4 py-2 bg-gray-100 border-t">
+          <button
+            className="text-gray-500 hover:text-gray-700 mx-1 cursor-pointer"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            {'<<'}
+          </button>
+          <button
+            className="text-gray-500 hover:text-gray-700 mx-1 cursor-pointer"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            {'<'}
+          </button>
           <span className="text-sm">Page</span>
           <input
             type="text"
-            defaultValue={1}
+            value={currentPage}
+            onChange={(e) => {
+              const page = Number(e.target.value);
+              if (page > 0 && page <= totalPages) {
+                setCurrentPage(page);
+              }
+            }}
             className="mx-2 w-8 text-center border rounded text-sm"
           />
-          <span className="text-sm">of 1</span>
+          <span className="text-sm">of {totalPages}</span>
+          <button
+            className="text-gray-500 hover:text-gray-700 mx-1 cursor-pointer"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            {'>'}
+          </button>
+          <button
+            className="text-gray-500 hover:text-gray-700 mx-1 cursor-pointer"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            {'>>'}
+          </button>
         </div>
       </div>
 
       {/* Bottom Buttons */}
-      <div className="flex justify-center gap-4 mt-6">
-        <div className="bg-orange-100 p-2">
-          <button className="border-2 border-cyan-500 px-4 py-2 flex items-center gap-2 text-black">
+      <div className="flex justify-center gap-4 mt-6 bg-orange-100 w-[53%] p-1 m-auto">
+        <div className=" p-2">
+          <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
             <FiPrinter /> Print Selected
           </button>
         </div>
         <div className="bg-orange-100 p-2">
-          <button className="px-4 py-2 flex items-center gap-2 text-black">
+          <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
             <FiPrinter /> Print All
           </button>
         </div>
         <div className="bg-orange-100 p-2">
-          <button className="px-4 py-2 flex items-center gap-2 text-black">
+          <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
             <FiTrash2 /> Delete Selected
           </button>
         </div>
         <div className="bg-orange-100 p-2">
-          <button className="px-4 py-2 flex items-center gap-2 text-black">
+          <button 
+            className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300"
+            onClick={handleOpenPrintSettings}
+          >
             <FiSettings /> Settings
           </button>
         </div>
       </div>
+
+      {/* Print Settings Popup */}
+      <PrintSettingsPopup 
+        isOpen={showPrintSettingsPopup} 
+        onClose={handleClosePrintSettings} 
+        onSave={handleSavePrintSettings}
+      />
     </div>
   );
 }
