@@ -105,7 +105,7 @@ const ShapesPanel = ({ onDragStart }) => {
   }, [activeTab]);
 
   return (
-    <div className="w-full bg-white border-l border-border p-4 flex flex-col">
+    <div className="w-full bg-white p-4 flex flex-col -mt-5">
       <div className="flex mb-4 border-b border-border">
         <button
           className={`flex-1 py-2 px-4 text-sm font-medium ${
@@ -129,14 +129,14 @@ const ShapesPanel = ({ onDragStart }) => {
         </button>
       </div>
 
-      <div className=" h-[60vh] grid grid-cols-2 gap-4 overflow-y-scroll">
+      <div className=" h-[60vh] grid grid-cols-3 gap-3 overflow-y-scroll ">
         {activeTab === 'shapes'
           ? shapes.map((shape) => (
               <div
                 key={shape.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, shape.id)}
-                className="flex flex-col items-center p-3 border border-border rounded hover:bg-gray-50 cursor-move"
+                className="flex flex-col items-center border border-border rounded hover:bg-gray-50 cursor-move"
               >
                 <div className="w-100 h-full mb-1">
                   <canvas 
@@ -153,7 +153,7 @@ const ShapesPanel = ({ onDragStart }) => {
                 key={arrow.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, arrow.id)}
-                className="flex flex-col items-center p-3 border border-border rounded hover:bg-gray-50 cursor-move"
+                className="flex flex-col items-center  border border-border rounded hover:bg-gray-50 cursor-move"
               >
                 <div className="w-10 h-full mb-1">
                   <canvas 
