@@ -6,28 +6,28 @@ import ObjectSettingsPanel from './ObjectSettingsPanel';
 
 // Shape definitions
 const SHAPES = {
-  rectangle: (left, top) => new Rect({
+  rectangle: (left, top, fillColor = "#15D7FF") => new Rect({
     left,
     top,
     width: 100,
     height: 50,
-    fill: "#15D7FF",
-    stroke: "#15D7FF",
+    fill: fillColor,
+    stroke: 'transparent',
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#15D7FF",
+    cornerColor: fillColor,
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
-  circle: (left, top) => new Circle({
+  circle: (left, top, fillColor = "#15D7FF") => new Circle({
     left,
     top,
     radius: 25,
-    fill: "#15D7FF",
-    stroke: "#15D7FF",
+    fill: fillColor,
+    stroke: 'transparent',
     strokeWidth: 1,
     transparentCorners: false,
-    cornerColor: "#15D7FF",
+    cornerColor: fillColor,
     cornerSize: 10,
     hasRotatingPoint: true,
   }),
@@ -628,7 +628,14 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 }
 };
 
-export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolChange, selectedImage }) => {
+export const DesignCanvas = ({
+  activeTool,
+  canvasSize,
+  onObjectSelect,
+  onToolChange,
+  selectedImage,
+  onCanvasReady
+}) => {
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
   
@@ -639,22 +646,25 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
   const [settingsPanelPosition, setSettingsPanelPosition] = useState(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    try {
-      const canvas = new fabric.Canvas(canvasRef.current, {
+    if (canvasRef.current) {
+      const canvas = new FabricCanvas(canvasRef.current, {
         width: canvasSize.width,
         height: canvasSize.height,
         backgroundColor: "#ffffff",
-        preserveObjectStacking: true,
       });
-
+  
+      // Expose the fabric canvas instance to the canvas element
+      canvasRef.current.fabricCanvas = canvas;
+  
+      // Pass the canvas instance to the parent
+      onCanvasReady?.(canvas);
+  
       // Add grid
-      const gridSize = 24;
-      const gridColor = "#e5e7eb";
+      const gridSize = 24; // Size of each grid square
+      const gridColor = "#e5e7eb"; // Light gray color for grid lines
       const gridWidth = canvas.width;
       const gridHeight = canvas.height;
-
+  
       // Draw vertical grid lines
       for (let i = 0; i <= gridWidth; i += gridSize) {
         canvas.add(new Line([i, 0, i, gridHeight], {
@@ -663,7 +673,7 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
           evented: false,
         }));
       }
-
+  
       // Draw horizontal grid lines
       for (let i = 0; i <= gridHeight; i += gridSize) {
         canvas.add(new Line([0, i, gridWidth, i], {
@@ -672,13 +682,13 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
           evented: false,
         }));
       }
-
+  
       // Add rulers
-      const rulerSize = 20;
-      const rulerColor = "#9ca3af";
-      const rulerBg = "#f3f4f6";
-
-      // Horizontal ruler
+      const rulerSize = 20; // Height of horizontal ruler, width of vertical ruler
+      const rulerColor = "#000000"; // Gray color for ruler text
+      const rulerBg = "#f3f4f6"; // Light gray background for rulers
+  
+      // Horizontal ruler (top)
       const horizontalRuler = new Rect({
         left: 0,
         top: -rulerSize,
@@ -689,8 +699,8 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         evented: false,
       });
       canvas.add(horizontalRuler);
-
-      // Vertical ruler
+  
+      // Vertical ruler (left)
       const verticalRuler = new Rect({
         left: -rulerSize,
         top: 0,
@@ -701,11 +711,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         evented: false,
       });
       canvas.add(verticalRuler);
-
-      // Add ruler measurements
+  
+      // Add ruler measurements (numbers)
+      // Horizontal ruler numbers
       for (let i = 0; i <= gridWidth; i += gridSize) {
         const text = new Textbox(i.toString(), {
-          left: i - 5,
+          left: i - 5, // Center the number
           top: -rulerSize + 5,
           fontSize: 10,
           fill: rulerColor,
@@ -716,11 +727,12 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         });
         canvas.add(text);
       }
-
+  
+      // Vertical ruler numbers
       for (let i = 0; i <= gridHeight; i += gridSize) {
         const text = new Textbox(i.toString(), {
           left: -rulerSize + 5,
-          top: i - 5,
+          top: i - 5, // Center the number
           fontSize: 10,
           fill: rulerColor,
           selectable: false,
@@ -730,7 +742,6 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
         });
         canvas.add(text);
       }
-
       // Initialize history stack
       canvas.history = {
         undo: [],
@@ -837,14 +848,9 @@ export const DesignCanvas = ({ activeTool, canvasSize, onObjectSelect, onToolCha
       canvas.on("object:added", saveState);
       canvas.on("object:removed", saveState);
 
-      // Expose the fabric canvas instance to the canvas element
-      canvasRef.current.fabricCanvas = canvas;
-
       setFabricCanvas(canvas);
-    } catch (error) {
-      console.error('Error initializing canvas:', error);
     }
-  }, []);
+  }, [canvasSize.width, canvasSize.height]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -1085,6 +1091,76 @@ useEffect(() => {
   };
 }, [activeTool, fabricCanvas]);
 
+  // Add line tool functionality
+  useEffect(() => {
+    if (!fabricCanvas || activeTool !== "line") return;
+
+    let isDrawing = false;
+    let line = null;
+
+    const handleMouseDown = (e) => {
+      if (fabricCanvas.getActiveObject()) return;
+      
+      isDrawing = true;
+      const pointer = fabricCanvas.getPointer(e.e);
+      
+      line = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+        stroke: "#15D7FF",
+        strokeWidth: 2,
+        selectable: true,
+        transparentCorners: false,
+        cornerColor: "#15D7FF",
+        cornerSize: 10,
+        hasRotatingPoint: true,
+      });
+      
+      fabricCanvas.add(line);
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDrawing || !line) return;
+      
+      const pointer = fabricCanvas.getPointer(e.e);
+      line.set({
+        x2: pointer.x,
+        y2: pointer.y
+      });
+      
+      fabricCanvas.requestRenderAll();
+    };
+
+    const handleMouseUp = () => {
+      if (!isDrawing || !line) return;
+      
+      isDrawing = false;
+      
+      // If the line is too short, remove it
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      if (length < 5) {
+        fabricCanvas.remove(line);
+      } else {
+        // Switch to select tool after drawing a valid line
+        onToolChange("select");
+      }
+      
+      line = null;
+      fabricCanvas.requestRenderAll();
+    };
+
+    fabricCanvas.on("mouse:down", handleMouseDown);
+    fabricCanvas.on("mouse:move", handleMouseMove);
+    fabricCanvas.on("mouse:up", handleMouseUp);
+
+    return () => {
+      fabricCanvas.off("mouse:down", handleMouseDown);
+      fabricCanvas.off("mouse:move", handleMouseMove);
+      fabricCanvas.off("mouse:up", handleMouseUp);
+    };
+  }, [activeTool, fabricCanvas]);
+
   // Add drawing functionality
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -1180,8 +1256,18 @@ useEffect(() => {
     onToolChange(tool);
   };
 
+  const handleCanvasClick = (e) => {
+    if (activeTool === "shape" && selectedShape) {
+      const pointer = fabricCanvas.getPointer(e.e);
+      const shape = SHAPES[selectedShape](pointer.x, pointer.y, fillColor);
+      fabricCanvas.add(shape);
+      fabricCanvas.setActiveObject(shape);
+      fabricCanvas.requestRenderAll();
+    }
+  };
+
   return (
-    <div className="flex w-full">
+    <div className="flex h-full w-full">
       <div
         className="border border-border rounded-lg shadow-lg bg-white relative flex-1"
         onDragOver={(e) => e.preventDefault()}
