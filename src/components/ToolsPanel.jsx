@@ -53,6 +53,7 @@ export const ToolsPanel = ({
   const [arrowsOpen, setArrowsOpen] = useState(false);
   const [strokeColor, setStrokeColor] = useState("#ef4444"); // Default red color
   const [fillColor, setFillColor] = useState("#15D7FF"); // Default blue color
+  const [selectedStrokeThickness, setSelectedStrokeThickness] = useState(2); // New state for stroke thickness
 
   const colors = [
     "#facc15", // yellow
@@ -250,6 +251,7 @@ export const ToolsPanel = ({
     { id: "image", icon: Image, label: "Image" },
     { id: "pencil", icon: Pencil, label: "Draw" },
     { id: "line", icon: Slash, label: "Line" },
+    
     { 
       id: "stroke", 
       icon: () => (
@@ -347,7 +349,51 @@ export const ToolsPanel = ({
       ), 
       label: "Fill" 
     },
-    { id: "point", icon: Circle, label: "Point" },
+    { 
+      id: "point", 
+      icon: () => (
+        <div 
+          className={`w-8 h-8 rounded-full cursor-pointer flex items-center justify-center`}
+        >
+          <div 
+            className="rounded-full bg-gray-600"
+            style={{ width: `${selectedStrokeThickness * 2}px`, height: `${selectedStrokeThickness * 2}px` }}
+          />
+        </div>
+      ),
+      label: "Point",
+      dropdown: (
+        <DropdownMenuContent className="w-48 ms-64">
+          <DropdownMenuLabel>Select Stroke Thickness</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((thickness) => (
+              <DropdownMenuItem 
+                key={thickness}
+                onClick={() => {
+                  setSelectedStrokeThickness(thickness);
+                  if (selectedObject) {
+                    selectedObject.set({
+                      strokeWidth: thickness
+                    });
+                    fabricCanvas.requestRenderAll();
+                  }
+                  onToolChange("point", thickness);
+                }}
+              >
+                <div 
+                  className="w-full h-4 flex items-center justify-center"
+                >
+                  <div 
+                    className="rounded-full bg-gray-600"
+                    style={{ width: `${thickness * 2}px`, height: `${thickness * 2}px` }}
+                  />
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      )
+    },
     { id: "starTool", icon: Star, label: "Star" },
   ];
 
@@ -429,15 +475,15 @@ export const ToolsPanel = ({
       <div className=" mt-">
         <div className="flex flex-col items-end justify-end gap-2 space-x-2">
           {tools.map((tool) => (
-            tool.id === "field" ? (
+            tool.id === "field" || tool.id === "point" ? (
               <DropdownMenu key={tool.id}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant={activeTool === tool.id ? "default" : "outline"}
+                    variant={"outline"}
                     size="md"
-                    className="flex items-center space-x-1 rounded-full p-3"
+                    className={`flex items-center space-x-1 rounded-full ${tool.id === "point" ? "p-1" : "p-3"}`}
                   >
-                    <tool.icon className="scale-125" />
+                    {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
                   </Button>
                 </DropdownMenuTrigger>
                 {tool.dropdown}
@@ -499,6 +545,7 @@ export const ToolsPanel = ({
           </div>
         </div> */}
       </div>
+      {/* Add this block for the Point tool's label */}
     </div>
   );
 };
