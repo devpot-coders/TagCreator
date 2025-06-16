@@ -364,6 +364,12 @@ function List() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  // Add new state for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: null
+  });
+
   // Handle delete confirmation
   const handleDelete = useCallback(() => {
     console.log("Deleting item (API call would go here):", itemToDelete);
@@ -824,70 +830,78 @@ function List() {
     modifiedByFilterDropdown,
   ]);
 
+  // Add sort handler
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...filteredTagList].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredTagList(sortedData);
+  };
+
+  // Update MemoizedSortableHeader component
   const MemoizedSortableHeader = React.memo(({ label, columnKey }) => {
     return (
-      <TableHead
-        className="relative text-black dark:text-white"
+      <th
+        className="px-4 py-2 text-left text-gray-600 relative"
         ref={(el) => (headerRefs.current[columnKey] = el)}
       >
         <div
           className="flex items-center gap-1 cursor-pointer"
           onClick={() => {
             updateDropdownPosition(columnKey);
-            if (columnKey === "title") {
-              setTitleFilterDropdown((prev) => !prev);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "createdBy") {
-              setCreatedByFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "dateCreated") {
-              setDateCreatedFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "dateModified") {
-              setDateModifiedFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "modifiedBy") {
-              setModifiedByFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setOpenDropdown(null);
-            } else {
-              setOpenDropdown((prev) =>
-                prev === columnKey ? null : columnKey
-              );
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
+            switch (columnKey) {
+              case "title":
+                setTitleFilterDropdown((prev) => !prev);
+                break;
+              case "createdBy":
+                setCreatedByFilterDropdown((prev) => !prev);
+                break;
+              case "dateCreated":
+                setDateCreatedFilterDropdown((prev) => !prev);
+                break;
+              case "dateModified":
+                setDateModifiedFilterDropdown((prev) => !prev);
+                break;
+              case "modifiedBy":
+                setModifiedByFilterDropdown((prev) => !prev);
+                break;
+              default:
+                break;
             }
           }}
         >
           {label}
           <div className="flex flex-col">
-            <FaSortUp className="text-xs -mb-1" />
-            <FaSortDown className="text-xs -mt-1" />
+            <FaSortUp 
+              className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
+            <FaSortDown 
+              className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
           </div>
         </div>
-      </TableHead>
+      </th>
     );
   });
 
@@ -1055,7 +1069,7 @@ function List() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border dark:border-gray-800">
+      <div className="overflow-x-auto rounded-lg border dark:border-gray-800 h-[75vh]">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100 dark:bg-zinc-900 text-black dark:text-white">

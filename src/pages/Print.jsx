@@ -22,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, HelpCircle } from "lucide-react";
+import PrintSettingsPopup from '../components/PrintSettingPopup';
 
 // Reusable FilterDropdown Component
 const FilterDropdown = ({
@@ -339,6 +340,8 @@ const Print = () => {
   const [supplierCombiner, setSupplierCombiner] = useState("And");
   const [tagListCombiner, setTagListCombiner] = useState("And");
 
+  const [showPrintSettingsPopup, setShowPrintSettingsPopup] = useState(false);
+
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const headerRefs = useRef({});
 
@@ -536,32 +539,59 @@ const Print = () => {
   // Add filteredData state
   const [filteredData, setFilteredData] = useState(tableData);
 
+  // Add new state for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: null
+  });
+
+  // Add sort handler
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...filteredData].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredData(sortedData);
+  };
+
   // Update the handleFilter function to include both top dropdowns and column filters
   const handleFilter = useCallback(() => {
     let currentFilteredList = tableData;
 
     // Apply top dropdown filters
-    if (selectedCategories.size > 0) {
+    if (selectedCategories.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedCategories.has(item.mainCategory)
+        selectedCategories.includes(item.mainCategory)
       );
     }
 
-    if (selectedSubCategories.size > 0) {
+    if (selectedSubCategories.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedSubCategories.has(item.subCategory)
+        selectedSubCategories.includes(item.subCategory)
       );
     }
 
-    if (selectedStores.size > 0) {
+    if (selectedStores.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedStores.has(item.store)
+        selectedStores.includes(item.store)
       );
     }
 
-    if (selectedSuppliers.size > 0) {
+    if (selectedSuppliers.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedSuppliers.has(item.supplier)
+        selectedSuppliers.includes(item.supplier)
       );
     }
 
@@ -933,6 +963,22 @@ const Print = () => {
     );
   };
 
+  // Handle closing the print settings popup
+  const handleClosePrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(false);
+  }, []);
+
+  // Handle saving print settings (you can implement actual save logic here)
+  const handleSavePrintSettings = useCallback((settings) => {
+    console.log("Saved Print Settings:", settings);
+    // Here you would typically send these settings to a backend or use them locally
+    // For now, we'll just log them to the console.
+  }, []);
+
+  const handleOpenPrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(true);
+  }, []);
+
   const handleSelectAll = () => {
     setSelectedItems((prev) =>
       prev.length === currentItems.length ? [] : currentItems.map((item) => item.id)
@@ -1207,8 +1253,20 @@ const Print = () => {
         >
           {label}
           <div className="flex flex-col">
-            <FaSortUp className="text-xs -mb-1" />
-            <FaSortDown className="text-xs -mt-1" />
+            <FaSortUp 
+              className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
+            <FaSortDown 
+              className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
           </div>
         </div>
       </th>
@@ -2062,12 +2120,19 @@ const Print = () => {
         </div>
         <div className="bg-orange-100 p-2">
           <button
+          onClick={handleOpenPrintSettings}
             className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300"
           >
             <FiSettings /> Settings
           </button>
         </div>
       </div>
+
+      <PrintSettingsPopup 
+        isOpen={showPrintSettingsPopup} 
+        onClose={handleClosePrintSettings} 
+        onSave={handleSavePrintSettings}
+      />
 
       {/* Render dropdowns */}
       {renderDropdown("bc")}

@@ -12,7 +12,8 @@ import {
   Pen,
   Tag,
   List,
-  LogOut
+  LogOut,
+  FilePlus
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,10 +24,18 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-  
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { OrientationDialog } from "./OrientationDialog";
+
 export const Sidebar = () => {
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(() => {
+    return localStorage.getItem('selectedTemplate') || null;
+  });
+  const [selectedOrientation, setSelectedOrientation] = useState(() => {
+    return localStorage.getItem('selectedOrientation') || null;
+  });
+  const [showOrientationDialog, setShowOrientationDialog] = useState(false);
+  const navigate = useNavigate();
 
   const newOptions = [
     "1UP",
@@ -45,8 +54,32 @@ export const Sidebar = () => {
 
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
-    // Here you can add additional logic to apply the template
-    console.log("Selected template:", template);
+    localStorage.setItem('selectedTemplate', template);
+    setShowOrientationDialog(true);
+  };
+
+  const handleOrientationContinue = () => {
+    setShowOrientationDialog(false);
+    // Navigate to editor canvas with the selected template and orientation
+    navigate('/editorCanvas', {
+      state: {
+        template: selectedTemplate,
+        orientation: selectedOrientation
+      }
+    });
+  };
+
+  const handleOrientationChange = (orientation) => {
+    setSelectedOrientation(orientation);
+    localStorage.setItem('selectedOrientation', orientation);
+  };
+
+  // Clear selections when logging out
+  const handleLogout = () => {
+    localStorage.removeItem('selectedTemplate');
+    localStorage.removeItem('selectedOrientation');
+    setSelectedTemplate(null);
+    setSelectedOrientation(null);
   };
 
   return (
@@ -62,13 +95,14 @@ export const Sidebar = () => {
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 ms-3">
+              <DropdownMenuContent className="w-38 ms-3">
                 {newOptions.map((option, idx) => (
                   <DropdownMenuItem 
                     key={option + idx} 
-                    className="flex items-center gap-1 text-base py-2.5 hover:bg-[#F09536] hover:text-white transition-colors duration-200"
+                    className="flex items-center gap-1 text-sm py-2 hover:bg-gray-100 hover:text-black transition-colors duration-200"
+                    onClick={() => handleTemplateSelect(option)}
                   >
-                    <Plus className="w-5 h-5" />
+                    <FilePlus className="w-5 h-5" />
                     {option}
                   </DropdownMenuItem>
                 ))}
@@ -76,42 +110,50 @@ export const Sidebar = () => {
             </DropdownMenu>
           </div>
           <div>
-              <NavLink to={"/list"}>
-                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
-                  <List/>
-              List
-                </Button>
-              </NavLink>
+            <NavLink to={"/"}>
+              <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                <List/>
+                List
+              </Button>
+            </NavLink>
           </div>
           <div>
-              <NavLink to={"/storetags"}>
-                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
-                  <Tag/>
-              Store Tags
-                </Button>
-              </NavLink>
+            <NavLink to={"/storetags"}>
+              <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+                <Tag/>
+                Store Tags
+              </Button>
+            </NavLink>
           </div>
-          <div>
-                <NavLink to={"/"}>
-                  <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+          {selectedTemplate && selectedOrientation && (
+            <div>
+              <NavLink to={"/editorCanvas"}>
+                <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
                   <Pen />
                   Editor
-                  </Button>
-                </NavLink>
-          </div>
-
+                </Button>
+              </NavLink>
+            </div>
+          )}
           <Separator />
-
         </div>
       </ScrollArea>
-        <div className=" p-4">
-                <NavLink to={"/login"}>
-                  <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
-                  <LogOut />
-                  Logout
-                  </Button>
-                </NavLink>
-          </div>
+      <div className="p-4">
+        <NavLink to={"/login"} onClick={handleLogout}>
+          <Button variant="outline" className="w-full border-none rounded-none bg-[#0000004f] text-lg py-8 text-white hover:bg-[#74747465] hover:text-white">
+            <LogOut />
+            Logout
+          </Button>
+        </NavLink>
+      </div>
+
+      <OrientationDialog
+        isOpen={showOrientationDialog}
+        onClose={() => setShowOrientationDialog(false)}
+        onContinue={handleOrientationContinue}
+        selectedOrientation={selectedOrientation}
+        onOrientationChange={handleOrientationChange}
+      />
     </div>
   );
 };
