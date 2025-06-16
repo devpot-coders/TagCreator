@@ -1069,7 +1069,7 @@ function List() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border dark:border-gray-800">
+      <div className="overflow-x-auto rounded-lg border dark:border-gray-800 h-[75vh]">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100 dark:bg-zinc-900 text-black dark:text-white">

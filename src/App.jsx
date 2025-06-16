@@ -8,9 +8,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import List from "./pages/List";
 import StoreTags from "./pages/StoreTags";
-import EditorCanvas from "./pages/EditorCanvas";
 import Login from "./components/Auth/Login";
 import Print from "./pages/Print";
+import EditorCanvas from "./pages/EditorCanvas";
 
 const queryClient = new QueryClient();
 
@@ -22,8 +22,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />}>
-            <Route index path="/" element={<EditorCanvas />} />
-            <Route path="/list" element={<List />} />
+            <Route path="/editorCanvas" element={<EditorCanvas />} />
+            <Route index path="/" element={<List />} />
             <Route path="/storetags" element={<StoreTags />} />
             <Route path="/print" element={<Print />} />
 

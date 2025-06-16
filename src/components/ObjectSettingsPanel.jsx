@@ -64,6 +64,7 @@ const ObjectSettingsPanel = ({
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [textAlign, setTextAlign] = useState('left');
+  const [textColor, setTextColor] = useState('#000000');
   const [gradients] = useState([
     {
       name: 'Blood Orange',
@@ -132,6 +133,17 @@ const ObjectSettingsPanel = ({
   ]);
   const [showBorderDropdown, setShowBorderDropdown] = useState(false);
 
+  const panelWidth = 384; // Corresponds to w-96
+  const panelHeight = 450; // Corresponds to h-[450px]
+
+  // Calculate effective left and top to keep the panel within the canvas boundaries
+  const effectiveLeft = Math.min(position.left, fabricCanvas ? fabricCanvas.getWidth() - panelWidth : window.innerWidth - panelWidth);
+  const effectiveTop = Math.min(position.top, fabricCanvas ? fabricCanvas.getHeight() - panelHeight : window.innerHeight - panelHeight);
+
+  // Ensure left and top are not negative
+  const finalLeft = Math.max(0, effectiveLeft);
+  const finalTop = Math.max(0, effectiveTop);
+
   useEffect(() => {
     console.log("Selected object updated in ObjectSettingsPanel:", selectedObject);
     if (selectedObject) {
@@ -140,17 +152,44 @@ const ObjectSettingsPanel = ({
       setObjectX(selectedObject.left.toFixed(1));
       setObjectY(selectedObject.top.toFixed(1));
       setObjectRotation(selectedObject.angle.toFixed(1));
-      setStrokeColor(selectedObject.stroke || '#000000');
-      setOpacity(selectedObject.opacity || 1);
-      setStrokeWidth(selectedObject.strokeWidth || 1);
-      setStrokeDashArray(selectedObject.strokeDashArray || []);
-      if (selectedObject.type === 'text' || selectedObject.type === 'i-text') {
+
+      let targetObjectForStyle = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObjectForStyle = selectedObject.getObjects()[0]; // Get the first object (the shape)
+      }
+
+      setStrokeColor(targetObjectForStyle.stroke || '#000000');
+      setOpacity(targetObjectForStyle.opacity || 1);
+      setStrokeWidth(targetObjectForStyle.strokeWidth || 1);
+      setStrokeDashArray(targetObjectForStyle.strokeDashArray || []);
+
+      if (selectedObject.type === 'textbox') {
         setTextValue(selectedObject.text);
         setFontSize(selectedObject.fontSize);
         setFontFamily(selectedObject.fontFamily);
         setIsBold(selectedObject.fontWeight === 'bold');
         setIsItalic(selectedObject.fontStyle === 'italic');
         setTextAlign(selectedObject.textAlign);
+        setTextColor(selectedObject.fill || '#000000');
+      } else if (selectedObject.type === 'group') {
+        const textObjectInGroup = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+        if (textObjectInGroup) {
+          setTextValue(textObjectInGroup.text);
+          setFontSize(textObjectInGroup.fontSize);
+          setFontFamily(textObjectInGroup.fontFamily);
+          setIsBold(textObjectInGroup.fontWeight === 'bold');
+          setIsItalic(textObjectInGroup.fontStyle === 'italic');
+          setTextAlign(textObjectInGroup.textAlign);
+          setTextColor(textObjectInGroup.fill || '#000000');
+        } else {
+          setTextValue('');
+          setFontSize(16);
+          setFontFamily('Arial');
+          setIsBold(false);
+          setIsItalic(false);
+          setTextAlign('left');
+          setTextColor('#000000');
+        }
       } else {
         setTextValue('');
         setFontSize(16);
@@ -158,6 +197,7 @@ const ObjectSettingsPanel = ({
         setIsBold(false);
         setIsItalic(false);
         setTextAlign('left');
+        setTextColor('#000000');
       }
     } else {
       setObjectWidth(0);
@@ -175,6 +215,7 @@ const ObjectSettingsPanel = ({
       setIsBold(false);
       setIsItalic(false);
       setTextAlign('left');
+      setTextColor('#000000');
     }
 
     const handleClickOutside = (event) => {
@@ -432,7 +473,11 @@ const ObjectSettingsPanel = ({
 
   const handleColorChange = (color) => {
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         fill: color,
         stroke: color,
         cornerColor: color
@@ -444,7 +489,11 @@ const ObjectSettingsPanel = ({
 
   const handleStrokeColorChange = (color) => {
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         stroke: color
       });
       setStrokeColor(color);
@@ -454,10 +503,14 @@ const ObjectSettingsPanel = ({
 
   const handleGradientChange = (colors) => {
     if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
       try {
         // Get the scaled dimensions of the object
-        const scaledWidth = selectedObject.getScaledWidth();
-        const scaledHeight = selectedObject.getScaledHeight();
+        const scaledWidth = targetObject.getScaledWidth();
+        const scaledHeight = targetObject.getScaledHeight();
 
         const gradient = new fabric.Gradient({
           type: 'linear',
@@ -473,7 +526,7 @@ const ObjectSettingsPanel = ({
           }))
         });
 
-        selectedObject.set('fill', gradient);
+        targetObject.set('fill', gradient);
         fabricCanvas.requestRenderAll();
         console.log('Gradient applied:', gradient);
         console.log('Selected object dimensions (scaled):', scaledWidth, scaledHeight);
@@ -485,8 +538,12 @@ const ObjectSettingsPanel = ({
 
   const handleOpacityChange = (value) => {
     if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
       const newOpacity = parseFloat(value);
-      selectedObject.set({
+      targetObject.set({
         opacity: newOpacity
       });
       setOpacity(newOpacity);
@@ -497,13 +554,24 @@ const ObjectSettingsPanel = ({
   const handleStrokeWidthChange = (e) => {
     const newWidth = e.target.value;
     setStrokeWidth(newWidth);
-    updateObjectProperty("strokeWidth", newWidth);
+    if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set("strokeWidth", parseFloat(newWidth));
+      fabricCanvas.requestRenderAll();
+    }
   };
 
   const handleStrokeDashArrayChange = (e) => {
     const newDashArray = JSON.parse(e.target.value);
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         strokeDashArray: newDashArray
       });
       setStrokeDashArray(newDashArray);
@@ -516,10 +584,17 @@ const ObjectSettingsPanel = ({
     setTextValue(newText);
     console.log("handleTextInputChange called. newText:", newText);
     console.log("selectedObject:", selectedObject);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('text', newText);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+
+    if (textObject) {
+      textObject.set('text', newText);
       fabricCanvas.requestRenderAll();
-      console.log("Text object updated.", selectedObject.text);
+      console.log("Text object updated.", textObject.text);
     } else {
       console.log("Selected object is not a text type or no object is selected.");
     }
@@ -528,8 +603,14 @@ const ObjectSettingsPanel = ({
   const handleFontFamilyChange = (e) => {
     const newFontFamily = e.target.value;
     setFontFamily(newFontFamily);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontFamily', newFontFamily);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontFamily', newFontFamily);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -537,8 +618,14 @@ const ObjectSettingsPanel = ({
   const handleFontSizeChange = (e) => {
     const newFontSize = parseFloat(e.target.value);
     setFontSize(newFontSize);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontSize', newFontSize);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontSize', newFontSize);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -546,8 +633,14 @@ const ObjectSettingsPanel = ({
   const handleBoldToggle = () => {
     const newIsBold = !isBold;
     setIsBold(newIsBold);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontWeight', newIsBold ? 'bold' : 'normal');
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontWeight', newIsBold ? 'bold' : 'normal');
       fabricCanvas.requestRenderAll();
     }
   };
@@ -555,16 +648,42 @@ const ObjectSettingsPanel = ({
   const handleItalicToggle = () => {
     const newIsItalic = !isItalic;
     setIsItalic(newIsItalic);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontStyle', newIsItalic ? 'italic' : 'normal');
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontStyle', newIsItalic ? 'italic' : 'normal');
       fabricCanvas.requestRenderAll();
     }
   };
 
   const handleTextAlignChange = (alignment) => {
     setTextAlign(alignment);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('textAlign', alignment);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('textAlign', alignment);
+      fabricCanvas.requestRenderAll();
+    }
+  };
+
+  const handleTextColorChange = (color) => {
+    setTextColor(color);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fill', color);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -574,8 +693,12 @@ const ObjectSettingsPanel = ({
   return (
     <div
       ref={panelRef}
-      className="absolute bg-white border border-gray-300 rounded-lg shadow-lg h-[450px] w-96 z-50 text-xs"
-      style={{ left: position.left, top: position.top }}
+      className="absolute bg-white border border-gray-300 rounded-lg shadow-lg h-[450px] w-96 text-xs"
+      style={{
+        left: finalLeft,
+        top: finalTop,
+        zIndex: 9999,
+      }}
     >
       <div className="flex border-b border-gray-200">
         <div className="flex flex-1">
@@ -1086,7 +1209,7 @@ const ObjectSettingsPanel = ({
                   {activeSubSubTab === "Colors" && (
                     <div className="min-h-[24.8vh] w-[348.5px] p-2 grid grid-cols-6 gap-5 rounded">
                       {[
-                        "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
+                        "#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
 
                         '#FF3333', '#FF6666', '#FF9999', '#FFCCCC', '#FFE5E5', '#990000', '#660000',
                          '#33FF33', '#66FF66', '#99FF99', '#CCFFCC', '#E5FFE5', '#009900', '#006600',
@@ -1278,7 +1401,7 @@ const ObjectSettingsPanel = ({
               onChange={handleTextInputChange}
               className="border border-gray-300 rounded px-2 py-1 text-xs"
               placeholder="Enter text..."
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             />
           </div>
 
@@ -1292,9 +1415,9 @@ const ObjectSettingsPanel = ({
               value={fontFamily}
               onChange={handleFontFamilyChange}
               className="border border-gray-300 rounded px-2 py-1 text-xs"
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
-              <option value="Arial">Arial</option>
+              <option value="Arial">Default (Arial)</option>
               <option value="Verdana">Verdana</option>
               <option value="Helvetica">Helvetica</option>
               <option value="Tahoma">Tahoma</option>
@@ -1315,20 +1438,20 @@ const ObjectSettingsPanel = ({
               value={fontSize}
               onChange={handleFontSizeChange}
               className="flex-1 border border-gray-300 rounded px-2 py-1 text-right text-xs"
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             />
             <div className="flex flex-col">
               <button
                 className="w-5 h-3.5 bg-gray-200 hover:bg-gray-300 rounded-t-sm flex items-center justify-center text-xs"
                 onClick={() => handleFontSizeChange({ target: { value: fontSize + 1 } })}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 &#9650;
               </button>
               <button
                 className="w-5 h-3.5 bg-gray-200 hover:bg-gray-300 rounded-b-sm flex items-center justify-center text-xs"
                 onClick={() => handleFontSizeChange({ target: { value: fontSize - 1 } })}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 &#9660;
               </button>
@@ -1340,14 +1463,14 @@ const ObjectSettingsPanel = ({
             <button
               className={`px-3 py-1 rounded font-bold ${isBold ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               onClick={handleBoldToggle}
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
               B
             </button>
             <button
               className={`px-3 py-1 rounded italic ${isItalic ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               onClick={handleItalicToggle}
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
               I
             </button>
@@ -1355,24 +1478,53 @@ const ObjectSettingsPanel = ({
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'left' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('left')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Left
               </button>
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'center' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('center')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Center
               </button>
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'right' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('right')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Right
               </button>
+            </div>
+          </div>
+          {/* Text Color Picker */}
+          <div className="mt-4 p-2 border-t border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Text Color</span>
+            <div className="h-[15vh] w-full grid grid-cols-6 gap-2 overflow-y-scroll overflow-x-hidden rounded mt-2">
+              {[ 
+                "#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
+                '#FF3333', '#FF6666', '#FF9999', '#FFCCCC', '#FFE5E5', '#990000', '#660000',
+                '#33FF33', '#66FF66', '#99FF99', '#CCFFCC', '#E5FFE5', '#009900', '#006600',
+                '#0000FF', '#3333FF', '#6666FF', '#9999FF', '#CCCCFF', '#E5E5FF', '#000099', '#000066',
+                '#FFFF00', '#FFFF33', '#FFFF66', '#FFFF99', '#FFFFCC', '#FFFFE5', '#999900', '#666600',
+                '#FF00FF', '#FF33FF', '#FF66FF', '#FF99FF', '#FFCCFF', '#FFE5FF', '#990099', '#660066','#33FFFF', '#66FFFF', '#99FFFF', '#CCFFFF', '#E5FFFF', '#009999', '#006666',
+                '#FFA500', '#FFB733', '#FFC966', '#FFDB99', '#FFEDCC', '#FFF6E5', '#996300', '#663D00',
+                '#800080', '#993399', '#B366B3', '#CC99CC', '#E5CCE5', '#F2E5F2', '#4D004D', '#330033',
+                '#A52A2A', '#B35959', '#C28989', '#D1B2B2', '#E8D9D9', '#F3ECEC', '#5C1616', '#330D0D',
+                '#FF6347', '#FF7F50', '#FF8C69', '#FFA07A', '#FFB6C1', '#FFDAB9', '#CD5C5C', '#E9967A',
+                '#4682B4', '#5F9EA0', '6495ED', '#7B68EE', '#9370DB', '#BA55D3', '#4169E1', '#6A5ACD',
+                '#2E8B57', '#3CB371', '#20B2AA', '#00CED1', '#40E0D0', '#AFEEEE', '#008080', '#008B8B'
+              ].map((color) => (
+                <button
+                  key={color}
+                  className={`w-6 h-6 rounded hover:scale-105 transition-transform ${(!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ backgroundColor: `${color}` }}
+                  onClick={() => handleTextColorChange(color)}
+                  title={`Color: ${color}`}
+                  disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
+                />
+              ))}
             </div>
           </div>
         </div>
