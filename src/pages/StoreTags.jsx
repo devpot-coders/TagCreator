@@ -106,6 +106,11 @@ function StoreTags() {
   const [selectedTableRows, setSelectedTableRows] = useState([]); // New state for selected table rows
   const [searchQuery, setSearchQuery] = useState(""); // New state for search query
 
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'ascending'
+  });
+
   const uniqueTitles = Array.from(new Set(tagData.map((tag) => tag.title)));
   const allSelTitlesSelected = selectedTitles.length === uniqueTitles.length;
 
@@ -653,6 +658,39 @@ function StoreTags() {
     // For now, we'll just log them to the console.
   }, []);
 
+  // Add sorting function
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...filteredTagList].sort((a, b) => {
+      if (a[key] === null || a[key] === undefined) return 1;
+      if (b[key] === null || b[key] === undefined) return -1;
+
+      if (key === 'dateCreated' || key === 'dateModified') {
+        return direction === 'ascending' 
+          ? new Date(a[key]) - new Date(b[key])
+          : new Date(b[key]) - new Date(a[key]);
+      }
+
+      const aValue = String(a[key]).toLowerCase();
+      const bValue = String(b[key]).toLowerCase();
+
+      if (aValue < bValue) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredTagList(sortedData);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 w-full">
       {/* Top Filters */}
@@ -712,11 +750,12 @@ function StoreTags() {
               {["Sel", "BC #", "Item", "Description", "Template", "Date Created", "Created By"].map((head, index) => (
                 <th
                   key={index}
-                  className="text-left px-2 py-2 border-r font-medium relative"
+                  className="text-left px-2 py-2 border-r font-normal relative"
                 >
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={(e) => {
+                      // Handle dropdowns
                       if (head === "Sel") {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setSelDropdownPosition({
@@ -771,7 +810,10 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Template") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setTemplateDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
+                        setTemplateDropdownPosition({
+                          top: rect.bottom + window.scrollY - 8,
+                          left: rect.left + window.scrollX,
+                        });
                         setShowTemplateFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -781,7 +823,10 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Date Created") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setDateCreatedDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
+                        setDateCreatedDropdownPosition({
+                          top: rect.bottom + window.scrollY - 8,
+                          left: rect.left + window.scrollX,
+                        });
                         setShowDateCreatedFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -791,7 +836,10 @@ function StoreTags() {
                         setShowCreatedByFilterDropdown(false);
                       } else if (head === "Created By") {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setCreatedByDropdownPosition({ top: rect.bottom + window.scrollY - 8, left: rect.left + window.scrollX });
+                        setCreatedByDropdownPosition({
+                          top: rect.bottom + window.scrollY - 8,
+                          left: rect.left + window.scrollX,
+                        });
                         setShowCreatedByFilterDropdown(true);
                         setShowSelFilterDropdown(false);
                         setShowBCFilterDropdown(false);
@@ -805,8 +853,58 @@ function StoreTags() {
                     {head}
                     {(head === "Sel" || head === "BC #" || head === "Item" || head === "Description" || head === "Template" || head === "Date Created" || head === "Created By") && (
                       <div className="flex flex-col">
-                        <FaSortUp className="text-xs -mb-1" />
-                        <FaSortDown className="text-xs -mt-1" />
+                        <FaSortUp 
+                          className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === {
+                            "Sel": "title",
+                            "BC #": "title",
+                            "Item": "createdBy",
+                            "Description": "dateCreated",
+                            "Template": "dateModified",
+                            "Date Created": "dateCreated",
+                            "Created By": "createdBy"
+                          }[head] && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const sortKey = {
+                              "Sel": "title",
+                              "BC #": "title",
+                              "Item": "createdBy",
+                              "Description": "dateCreated",
+                              "Template": "dateModified",
+                              "Date Created": "dateCreated",
+                              "Created By": "createdBy"
+                            }[head];
+                            if (sortKey) {
+                              handleSort(sortKey);
+                            }
+                          }}
+                        />
+                        <FaSortDown 
+                          className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === {
+                            "Sel": "title",
+                            "BC #": "title",
+                            "Item": "createdBy",
+                            "Description": "dateCreated",
+                            "Template": "dateModified",
+                            "Date Created": "dateCreated",
+                            "Created By": "createdBy"
+                          }[head] && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const sortKey = {
+                              "Sel": "title",
+                              "BC #": "title",
+                              "Item": "createdBy",
+                              "Description": "dateCreated",
+                              "Template": "dateModified",
+                              "Date Created": "dateCreated",
+                              "Created By": "createdBy"
+                            }[head];
+                            if (sortKey) {
+                              handleSort(sortKey);
+                            }
+                          }}
+                        />
                       </div>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Rect, Circle, Textbox, Polygon, Path, Line } from "fabric";
+import { Canvas as FabricCanvas, Rect, Circle, Textbox, Polygon, Path, Line, Group } from "fabric";
 import * as fabric from 'fabric';
 import ShapesPanel from './ShapesPanel';
 import ObjectSettingsPanel from './ObjectSettingsPanel';
@@ -645,12 +645,21 @@ export const DesignCanvas = ({
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [settingsPanelPosition, setSettingsPanelPosition] = useState(null);
 
+  // Initialize canvas
   useEffect(() => {
     if (canvasRef.current) {
+      // Dispose of existing canvas if it exists
+      if (fabricCanvas) {
+        fabricCanvas.dispose();
+      }
+
+      // Create new canvas
       const canvas = new FabricCanvas(canvasRef.current, {
         width: canvasSize.width,
         height: canvasSize.height,
         backgroundColor: "#ffffff",
+        selection: true, // Ensure selection is enabled
+        preserveObjectStacking: true,
       });
   
       // Expose the fabric canvas instance to the canvas element
@@ -661,7 +670,7 @@ export const DesignCanvas = ({
   
       // Add grid
       const gridSize = 24; // Size of each grid square
-      const gridColor = "#e5e7eb"; // Light gray color for grid lines
+      const gridColor = "#9ca3af"; // Darker gray color for grid lines
       const gridWidth = canvas.width;
       const gridHeight = canvas.height;
   
@@ -669,6 +678,7 @@ export const DesignCanvas = ({
       for (let i = 0; i <= gridWidth; i += gridSize) {
         canvas.add(new Line([i, 0, i, gridHeight], {
           stroke: gridColor,
+          strokeWidth: 0.5,
           selectable: false,
           evented: false,
         }));
@@ -678,6 +688,7 @@ export const DesignCanvas = ({
       for (let i = 0; i <= gridHeight; i += gridSize) {
         canvas.add(new Line([0, i, gridWidth, i], {
           stroke: gridColor,
+          strokeWidth: 0.5,
           selectable: false,
           evented: false,
         }));
@@ -685,7 +696,6 @@ export const DesignCanvas = ({
   
       // Add rulers
       const rulerSize = 20; // Height of horizontal ruler, width of vertical ruler
-      const rulerColor = "#000000"; // Gray color for ruler text
       const rulerBg = "#f3f4f6"; // Light gray background for rulers
   
       // Horizontal ruler (top)
@@ -711,37 +721,7 @@ export const DesignCanvas = ({
         evented: false,
       });
       canvas.add(verticalRuler);
-  
-      // Add ruler measurements (numbers)
-      // Horizontal ruler numbers
-      for (let i = 0; i <= gridWidth; i += gridSize) {
-        const text = new Textbox(i.toString(), {
-          left: i - 5, // Center the number
-          top: -rulerSize + 5,
-          fontSize: 10,
-          fill: rulerColor,
-          selectable: false,
-          evented: false,
-          width: 20,
-          textAlign: 'center',
-        });
-        canvas.add(text);
-      }
-  
-      // Vertical ruler numbers
-      for (let i = 0; i <= gridHeight; i += gridSize) {
-        const text = new Textbox(i.toString(), {
-          left: -rulerSize + 5,
-          top: i - 5, // Center the number
-          fontSize: 10,
-          fill: rulerColor,
-          selectable: false,
-          evented: false,
-          width: 20,
-          textAlign: 'center',
-        });
-        canvas.add(text);
-      }
+
       // Initialize history stack
       canvas.history = {
         undo: [],
@@ -759,12 +739,12 @@ export const DesignCanvas = ({
 
       // Enable object manipulation
       canvas.on("selection:created", (e) => {
-        onObjectSelect(e.selected?.[0]);
-        if (e.selected?.[0]) {
-          const obj = e.selected[0];
+        const selectedObject = e.selected?.[0];
+        onObjectSelect(selectedObject);
+        if (selectedObject) {
           setSettingsIconPosition({
-            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
-            top: obj.getBoundingRect().top - 10
+            left: selectedObject.getBoundingRect().left + selectedObject.getBoundingRect().width - 12,
+            top: selectedObject.getBoundingRect().top - 10
           });
         } else {
           setSettingsIconPosition(null);
@@ -772,12 +752,12 @@ export const DesignCanvas = ({
       });
 
       canvas.on("selection:updated", (e) => {
-        onObjectSelect(e.selected?.[0]);
-        if (e.selected?.[0]) {
-          const obj = e.selected[0];
+        const selectedObject = e.selected?.[0];
+        onObjectSelect(selectedObject);
+        if (selectedObject) {
           setSettingsIconPosition({
-            left: obj.getBoundingRect().left + obj.getBoundingRect().width - 12,
-            top: obj.getBoundingRect().top - 10
+            left: selectedObject.getBoundingRect().left + selectedObject.getBoundingRect().width - 12,
+            top: selectedObject.getBoundingRect().top - 10
           });
         } else {
           setSettingsIconPosition(null);
@@ -791,11 +771,12 @@ export const DesignCanvas = ({
 
       // Track all object modifications
       canvas.on("object:modified", (e) => {
-        onObjectSelect(e.target);
-        if (e.target) {
+        const modifiedObject = e.target;
+        onObjectSelect(modifiedObject);
+        if (modifiedObject) {
           setSettingsIconPosition({
-            left: e.target.getBoundingRect().left + e.target.getBoundingRect().width - 12,
-            top: e.target.getBoundingRect().top - 10
+            left: modifiedObject.getBoundingRect().left + modifiedObject.getBoundingRect().width - 12,
+            top: modifiedObject.getBoundingRect().top - 10
           });
         }
         saveState();
@@ -849,27 +830,53 @@ export const DesignCanvas = ({
       canvas.on("object:removed", saveState);
 
       setFabricCanvas(canvas);
+
+      // Cleanup function
+      return () => {
+        canvas.dispose();
+      };
     }
   }, [canvasSize.width, canvasSize.height]);
 
-  useEffect(() => {
-    if (!fabricCanvas) return;
+  // useEffect(() => {
+  //   if (!fabricCanvas) return;
     
-    fabricCanvas.setDimensions({
-      width: canvasSize.width,
-      height: canvasSize.height,
-    });
-  }, [canvasSize, fabricCanvas]);
+  //   fabricCanvas.setDimensions({
+  //     width: canvasSize.width,
+  //     height: canvasSize.height,
+  //   });
+  // }, [canvasSize, fabricCanvas]);
 
   useEffect(() => {
-    if (!fabricCanvas || !selectedImage || activeTool !== "image") return;
+    if (!fabricCanvas || !selectedImage || activeTool !== "image") {
+      console.log('Image effect conditions not met:', {
+        hasCanvas: !!fabricCanvas,
+        hasImage: !!selectedImage,
+        activeTool
+      });
+      return;
+    }
   
+    console.log('Starting image load process');
     const left = canvasSize.width / 4;
     const top = canvasSize.height / 4;
   
     const imgElement = new Image();
+    imgElement.crossOrigin = "anonymous";
   
     imgElement.onload = () => {
+      console.log('Image loaded successfully');
+      // Calculate appropriate scale to fit the image within canvas bounds
+      const maxWidth = canvasSize.width * 0.8; // 80% of canvas width
+      const maxHeight = canvasSize.height * 0.8; // 80% of canvas height
+      
+      let scaleX = maxWidth / imgElement.width;
+      let scaleY = maxHeight / imgElement.height;
+      
+      // Use the smaller scale to maintain aspect ratio
+      const scale = Math.min(scaleX, scaleY);
+      
+      console.log('Creating fabric image with scale:', scale);
       const fabricImg = new fabric.Image(imgElement, {
         left,
         top,
@@ -877,12 +884,17 @@ export const DesignCanvas = ({
         cornerColor: "#000000",
         cornerSize: 10,
         hasRotatingPoint: true,
-        scaleX: 0.2,
-        scaleY: 0.2,
+        scaleX: scale,
+        scaleY: scale,
         selectable: true,
         evented: true,
+        originX: 'center',
+        originY: 'center',
+        centeredScaling: true,
+        centeredRotation: true
       });
   
+      console.log('Adding image to canvas');
       fabricCanvas.add(fabricImg);
       fabricCanvas.setActiveObject(fabricImg);
       fabricCanvas.requestRenderAll();
@@ -895,11 +907,16 @@ export const DesignCanvas = ({
       onToolChange("select");
     };
   
-    imgElement.onerror = () => {
-      console.error("Failed to load the image element from base64");
+    imgElement.onerror = (error) => {
+      console.error("Failed to load the image:", error);
     };
   
-    imgElement.src = selectedImage;
+    try {
+      console.log('Setting image source');
+      imgElement.src = selectedImage;
+    } catch (error) {
+      console.error("Error setting image source:", error);
+    }
   
   }, [selectedImage, fabricCanvas, activeTool, canvasSize, onToolChange]);
   
@@ -922,7 +939,7 @@ export const DesignCanvas = ({
           fabricCanvas.setActiveObject(shape);
         } else if (ARROWS[activeTool]) {
           console.log('Creating arrow:', activeTool);
-          const arrow = ARROWS[activeTool](left - 25, top - 25);
+          const arrow = ARROWS[activeTool].call(ARROWS, left - 25, top - 25);
           console.log('Arrow created:', arrow);
           if (arrow) {
             fabricCanvas.add(arrow);
@@ -1266,6 +1283,98 @@ useEffect(() => {
     }
   };
 
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const handleDoubleClick = (e) => {
+      const activeObject = fabricCanvas.getActiveObject();
+      if (!activeObject) return;
+
+      // Check if the object is a group and has text
+      if (activeObject.type === 'group') {
+        const textObject = activeObject.getObjects().find(obj => obj.type === 'textbox');
+        if (textObject) {
+          // If text exists, make it editable
+          textObject.enterEditing();
+          textObject.hiddenTextarea.focus();
+          return;
+        }
+      }
+
+      // Get object's current bounding rectangle
+      const objRect = activeObject.getBoundingRect();
+      const centerX = objRect.left + objRect.width / 2;
+      const centerY = objRect.top + objRect.height / 2;
+
+      // If no text exists, create new textbox
+      const textbox = new Textbox("", {
+        fontSize: Math.min(objRect.width, objRect.height) / 4, // Use objRect for font size
+        fill: "#000000",
+        fontFamily: "Arial",
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
+        selectable: true,
+        editable: true,
+        splitByGrapheme: true,
+        width: objRect.width, // Full width of the bounding box
+        height: objRect.height, // Full height of the bounding box
+        left: centerX, // Centered X
+        top: centerY, // Centered Y
+        transparentCorners: false,
+        cornerColor: "#000000",
+        cornerSize: 10,
+        hasRotatingPoint: true,
+        lockScalingX: true,
+        lockScalingY: true,
+        lockUniScaling: true,
+        backgroundColor: 'transparent',
+        stroke: 'transparent',
+        strokeWidth: 0
+      });
+
+      // Create a group with the original object and the text
+      const group = new Group([activeObject, textbox], {
+        left: activeObject.left,
+        top: activeObject.top,
+        selectable: true,
+        transparentCorners: false,
+        cornerColor: "#000000",
+        cornerSize: 10,
+        hasRotatingPoint: true
+      });
+
+      // Add custom scaling behavior
+      group.on('scaling', function(e) {
+        const scaleX = this.scaleX;
+        const scaleY = this.scaleY;
+        
+        // Reset text scaling to maintain original size
+        textbox.set({
+          scaleX: 1 / scaleX,
+          scaleY: 1 / scaleY
+        });
+      });
+
+      // Remove the original object and add the group
+      fabricCanvas.remove(activeObject);
+      fabricCanvas.add(group);
+      fabricCanvas.setActiveObject(group);
+
+      // Enter editing mode for the text
+      textbox.enterEditing();
+      textbox.hiddenTextarea.focus();
+
+      fabricCanvas.requestRenderAll();
+    };
+
+    fabricCanvas.on("mouse:dblclick", handleDoubleClick);
+
+    return () => {
+      fabricCanvas.off("mouse:dblclick", handleDoubleClick);
+    };
+  }, [fabricCanvas]);
+
   return (
     <div className="flex h-full w-full">
       <div
@@ -1284,7 +1393,8 @@ useEffect(() => {
               fabricCanvas.add(shape);
               fabricCanvas.setActiveObject(shape);
             } else if (ARROWS[tool]) {
-              const arrow = ARROWS[tool](left - 25, top - 25);
+              // Create arrow with default size and color
+              const arrow = ARROWS[tool](left - 25, top - 25, ARROWS.config.defaultSize, ARROWS.config.defaultColor);
               fabricCanvas.add(arrow);
               fabricCanvas.setActiveObject(arrow);
             }
@@ -1341,7 +1451,7 @@ useEffect(() => {
           />
         )}
       </div>
-      <ShapesPanel onDragStart={handleDragStart} />
+      {/* <ShapesPanel onDragStart={handleDragStart} /> */}
     </div>
   );
 };
