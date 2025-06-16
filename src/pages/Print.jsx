@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon, HelpCircle } from "lucide-react";
 import PrintSettingsPopup from '../components/PrintSettingPopup';
+import { MdPictureAsPdf } from "react-icons/md";
+import { MdLocalPrintshop } from "react-icons/md";
+
+
+
 
 // Reusable FilterDropdown Component
 const FilterDropdown = ({
@@ -2105,17 +2110,17 @@ const Print = () => {
       <div className="flex justify-center gap-4 mt-6 bg-orange-100 w-[53%] p-1 m-auto">
         <div className=" p-2">
           <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiPrinter /> Print Selected
+            <FiPrinter /> Preview
           </button>
         </div>
         <div className="bg-orange-100 p-2">
           <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiPrinter /> Print All
+            <MdPictureAsPdf /> Create PDF
           </button>
         </div>
         <div className="bg-orange-100 p-2">
           <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiTrash2 /> Delete Selected
+            <MdLocalPrintshop /> Print
           </button>
         </div>
         <div className="bg-orange-100 p-2">
