@@ -5,14 +5,15 @@ import { Sidebar } from "../components/Sidebar";
 const Index = () => {
 
   return (
+    <>
+      <Header/>
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Templates & Assets */}
+      <div className="flex flex-1 ">
         <Sidebar />
-        <Outlet/>
+          <Outlet/>
       </div>
     </div>
+    </>
   );
 };
 

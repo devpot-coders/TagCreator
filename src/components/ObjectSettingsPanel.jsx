@@ -669,7 +669,23 @@ const ObjectSettingsPanel = ({
       textObject = selectedObject;
     }
     if (textObject) {
+      // Store the current dimensions before changing alignment
+      const currentWidth = textObject.width * textObject.scaleX;
+      const currentHeight = textObject.height * textObject.scaleY;
+      
+      // Change the alignment
       textObject.set('textAlign', alignment);
+      
+      // Force the dimensions to stay the same
+      textObject.set({
+        width: currentWidth,
+        height: currentHeight,
+        scaleX: 1,
+        scaleY: 1,
+        fixedWidth: currentWidth,
+        fixedHeight: currentHeight
+      });
+      
       fabricCanvas.requestRenderAll();
     }
   };
