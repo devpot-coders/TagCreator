@@ -38,16 +38,16 @@ export const Sidebar = () => {
   const navigate = useNavigate();
 
   const newOptions = [
-    "1UP",
-    "1UP (LEGAL)",
+    // "1UP",
+    // "1UP (LEGAL)",
     "2UP",
     "4UP",
     "4UP(4.25 X 5.1)",
     "8UP",
     "16UP",
     "16UP",
-    "Avery 5160",
-    "Avery 5163",
+    // "Avery 5160",
+    // "Avery 5163",
     "Two Page",
     "Full Page",
   ];
@@ -84,7 +84,9 @@ export const Sidebar = () => {
   };
 
   return (
+
     <div className="w-38 border-r bg-[#F09536] flex flex-col sticky top-0 left-0 z-50">
+
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
           {/* Templates Section */}
