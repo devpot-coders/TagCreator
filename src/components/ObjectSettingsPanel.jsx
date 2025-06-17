@@ -42,13 +42,14 @@ const ObjectSettingsPanel = ({
   selectedObject,
   position,
   onClose,
+  clipboard,
+  setClipboard,
 }) => {
   const [activeMainTab, setActiveMainTab] = useState("Home");
   const [activeSubTab, setActiveSubTab] = useState("General");
   const [activeColorSubTab, setActiveColorSubTab] = useState("Color");
   const [activeSubSubTab, setActiveSubSubTab] = useState("Colors");
   const panelRef = useRef(null);
-  const [clipboard, setClipboard] = useState(null);
   const [objectWidth, setObjectWidth] = useState(0);
   const [objectHeight, setObjectHeight] = useState(0);
   const [objectX, setObjectX] = useState(0);
@@ -235,49 +236,226 @@ const ObjectSettingsPanel = ({
 
   const handleCopy = () => {
     if (selectedObject) {
-      selectedObject.clone((clonedObj) => {
-        setClipboard(clonedObj);
-        console.log("Object copied:", clonedObj);
-      });
+      // Get the active object and serialize it
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        // For images, we need to ensure we're copying the correct image data
+        if (activeObject.type === 'image') {
+          const imageData = {
+            type: 'image',
+            src: activeObject._element.src,
+            left: activeObject.left,
+            top: activeObject.top,
+            scaleX: activeObject.scaleX,
+            scaleY: activeObject.scaleY,
+            angle: activeObject.angle,
+            width: activeObject.width,
+            height: activeObject.height,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(imageData);
+          console.log("Image copied to clipboard:", imageData);
+        } else if (activeObject.type === 'line') {
+          // Special handling for lines
+          const lineData = {
+            type: 'line',
+            x1: activeObject.x1,
+            y1: activeObject.y1,
+            x2: activeObject.x2,
+            y2: activeObject.y2,
+            stroke: activeObject.stroke,
+            strokeWidth: activeObject.strokeWidth,
+            left: activeObject.left,
+            top: activeObject.top,
+            angle: activeObject.angle,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(lineData);
+          console.log("Line copied to clipboard:", lineData);
+        } else {
+          // For other objects, use the standard toObject method
+          const objectData = activeObject.toObject();
+          setClipboard(objectData);
+          console.log("Object copied to clipboard:", objectData);
+        }
+      }
     }
   };
 
   const handleCut = () => {
     if (selectedObject) {
-      selectedObject.clone((clonedObj) => {
-        setClipboard(clonedObj);
-        fabricCanvas.remove(selectedObject);
-        fabricCanvas.requestRenderAll();
-        console.log("Object cut:", clonedObj);
-      });
+      // Get the active object and serialize it
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        // For images, we need to ensure we're copying the correct image data
+        if (activeObject.type === 'image') {
+          const imageData = {
+            type: 'image',
+            src: activeObject._element.src,
+            left: activeObject.left,
+            top: activeObject.top,
+            scaleX: activeObject.scaleX,
+            scaleY: activeObject.scaleY,
+            angle: activeObject.angle,
+            width: activeObject.width,
+            height: activeObject.height,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(imageData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Image cut to clipboard:", imageData);
+        } else if (activeObject.type === 'line') {
+          // Special handling for lines
+          const lineData = {
+            type: 'line',
+            x1: activeObject.x1,
+            y1: activeObject.y1,
+            x2: activeObject.x2,
+            y2: activeObject.y2,
+            stroke: activeObject.stroke,
+            strokeWidth: activeObject.strokeWidth,
+            left: activeObject.left,
+            top: activeObject.top,
+            angle: activeObject.angle,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(lineData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Line cut to clipboard:", lineData);
+        } else {
+          // For other objects, use the standard toObject method
+          const objectData = activeObject.toObject();
+          setClipboard(objectData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Object cut to clipboard:", objectData);
+        }
+      }
     }
   };
 
   const handlePaste = () => {
-    if (clipboard) {
-      clipboard.clone((clonedObj) => {
-        fabricCanvas.discardActiveObject();
-        clonedObj.set({
-          left: clonedObj.left + 10,
-          top: clonedObj.top + 10,
-          evented: true,
-        });
-        if (clonedObj.type === "activeSelection") {
-          // uncheck here to get all subobjects in the active selection
-          clonedObj.canvas = fabricCanvas;
-          clonedObj.forEachObject(function (obj) {
-            fabricCanvas.add(obj);
+    if (!fabricCanvas || !clipboard) {
+      console.log("Cannot paste: No canvas or clipboard data");
+      return;
+    }
+
+    console.log("Attempting to paste:", clipboard);
+    
+    try {
+      let pastedObject;
+      const offset = 20; // pixels to offset the pasted object
+
+      // Convert type to lowercase for case-insensitive comparison
+      const objectType = clipboard.type.toLowerCase();
+
+      // Create new object based on type
+      switch (objectType) {
+        case 'line':
+          // Create a new line with the copied properties
+          pastedObject = new fabric.Line(
+            [clipboard.x1, clipboard.y1, clipboard.x2, clipboard.y2],
+            {
+              stroke: clipboard.stroke || '#000000',
+              strokeWidth: clipboard.strokeWidth || 2,
+              left: (clipboard.left || 0) + offset,
+              top: (clipboard.top || 0) + offset,
+              angle: clipboard.angle || 0,
+              evented: true,
+              selectable: true,
+              hasControls: true,
+              hasBorders: true,
+            }
+          );
+          break;
+
+        case 'image':
+          // For images, we need to load the image first
+          if (!clipboard.src) {
+            console.error("No image source found in clipboard data");
+            return;
+          }
+
+          // Create a new image element
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          
+          img.onload = () => {
+            // Create a new fabric image
+            const fabricImage = new fabric.Image(img, {
+              left: (clipboard.left || 0) + offset,
+              top: (clipboard.top || 0) + offset,
+              scaleX: clipboard.scaleX || 1,
+              scaleY: clipboard.scaleY || 1,
+              angle: clipboard.angle || 0,
+              width: clipboard.width || img.width,
+              height: clipboard.height || img.height,
+              evented: true,
+              selectable: true,
+              hasControls: true,
+              hasBorders: true,
+            });
+
+            // Remove any existing selection
+            fabricCanvas.discardActiveObject();
+            
+            // Add the new image
+            fabricCanvas.add(fabricImage);
+            
+            // Select only the new image
+            fabricCanvas.setActiveObject(fabricImage);
+            fabricCanvas.requestRenderAll();
+            console.log("Image pasted successfully");
+          };
+
+          img.onerror = (error) => {
+            console.error("Error loading image:", error);
+          };
+
+          // Set the image source to start loading
+          img.src = clipboard.src;
+          return;
+
+        default:
+          // For any other type, try to use enlivenObjects as a fallback
+          fabric.util.enlivenObjects([clipboard], (objects) => {
+            if (objects && objects.length > 0) {
+              const obj = objects[0];
+              obj.set({
+                left: (clipboard.left || 0) + offset,
+                top: (clipboard.top || 0) + offset,
+                evented: true,
+                selectable: true,
+                hasControls: true,
+                hasBorders: true,
+              });
+              fabricCanvas.add(obj);
+              fabricCanvas.setActiveObject(obj);
+              fabricCanvas.requestRenderAll();
+            }
           });
-          // this should improve the experience, when the group is too big,
-          // to ungroup it after creation
-          clonedObj.setCoords();
-        } else {
-          fabricCanvas.add(clonedObj);
-        }
-        fabricCanvas.setActiveObject(clonedObj);
-        fabricCanvas.requestRenderAll();
-        console.log("Object pasted:", clonedObj);
-      });
+          return;
+      }
+
+      // Add the object to canvas
+      fabricCanvas.add(pastedObject);
+      
+      // Select the pasted object
+      fabricCanvas.setActiveObject(pastedObject);
+      fabricCanvas.requestRenderAll();
+      console.log("Object pasted successfully");
+    } catch (error) {
+      console.error("Error pasting object:", error);
     }
   };
 

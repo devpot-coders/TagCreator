@@ -636,7 +636,9 @@ export const DesignCanvas = ({
   selectedImage,
   onCanvasReady,
   strokeColor = "#ef4444",
-  strokeWidth = 2
+  strokeWidth = 2,
+  clipboard,
+  setClipboard,
 }) => {
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
@@ -1540,6 +1542,8 @@ export const DesignCanvas = ({
             selectedObject={fabricCanvas?.getActiveObject()}
             position={settingsPanelPosition}
             onClose={() => setShowSettingsPanel(false)}
+            clipboard={clipboard}
+            setClipboard={setClipboard}
           />
         )}
       </div>
