@@ -20,7 +20,10 @@ import {
   X,
 } from "lucide-react";
 import ShapesPanel from "../components/ShapesPanel";
+import Calculate from "../components/Calculate";
 // // import { PropertiesPanel } from "../components/PropertiesPanel";
+
+
 
 // Template sizes in inches
 const TEMPLATE_SIZES = {
@@ -97,9 +100,26 @@ function EditorCanvas() {
   const [showGuideline, setShowGuideline] = useState(false);
   const containerRef = useRef(null);
   const [settingsIconPosition, setSettingsIconPosition] = useState(null);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
+  };
+
+
+
+
+  const handleOpenCalculator = () => {
+    setShowCalculator(true);
+  };
+
+  const handleCloseCalculator = () => {
+    setShowCalculator(false);
+  };
+
+  const handleSaveCalculator = (calculations) => {
+    console.log("Saved Field Calculations from Header:", calculations);
+    setShowCalculator(false);
   };
 
   // Add effect to update canvas size when template or orientation changes
@@ -527,10 +547,11 @@ function EditorCanvas() {
             </div>
             <div className="flex flex-col items-center space-y-1">
               <Button
+              onClick={handleOpenCalculator}
                 variant="outline"
                 className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
               >
-                <Calculator className="scale-150" color="black" />
+                <Calculator  className="scale-150" color="black" />
               </Button>
               <p className="text-xs">Calculations</p>
             </div>
@@ -593,7 +614,14 @@ function EditorCanvas() {
         {/* Right Panel - Properties */}
         {/* <PropertiesPanel selectedObject={selectedObject} /> */}
       </div>
+     <Calculate
+        isOpen={showCalculator}
+        onClose={handleCloseCalculator}
+        onSave={handleSaveCalculator}
+      />
     </>
+
+    
   );
 }
 
