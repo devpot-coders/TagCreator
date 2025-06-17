@@ -38,20 +38,21 @@ export const Sidebar = () => {
   const navigate = useNavigate();
 
   const newOptions = [
-    // "1UP",
-    // "1UP (LEGAL)",
+    "1UP",
+    "1UP (LEGAL)",
     "2UP",
     "4UP",
     "4UP(4.25 X 5.1)",
     "8UP",
     "16UP",
     "16UP",
-    // "Avery 5160",
-    // "Avery 5163",
+    "Avery 5160",
+    "Avery 5163",
     "Two Page",
     "Full Page",
   ];
 
+  
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
     localStorage.setItem('selectedTemplate', template);
