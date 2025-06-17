@@ -100,7 +100,15 @@ function EditorCanvas() {
   const [showGuideline, setShowGuideline] = useState(false);
   const containerRef = useRef(null);
   const [settingsIconPosition, setSettingsIconPosition] = useState(null);
+
   const [showCalculator, setShowCalculator] = useState(false);
+
+  const [strokeColor, setStrokeColor] = useState("#ef4444");
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [showTemplateNameDialog, setShowTemplateNameDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -319,20 +327,6 @@ function EditorCanvas() {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Initialize keyboard shortcuts
-    const handleKeyDown = (e) => {
-      // Don't handle shortcuts if we're editing text
-      if (fabricCanvas.getActiveObject()?.isEditing) {
-        return;
-      }
-
-      // Delete (Delete or Backspace)
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        handleDelete();
-      }
-    };
-
     // Initialize canvas event listeners
     const handleSelectionCreated = (e) => {
       const selectedObject = e.selected?.[0];
@@ -366,14 +360,12 @@ function EditorCanvas() {
     };
 
     // Add event listeners
-    window.addEventListener("keydown", handleKeyDown);
     fabricCanvas.on("selection:created", handleSelectionCreated);
     fabricCanvas.on("selection:updated", handleSelectionUpdated);
     fabricCanvas.on("selection:cleared", handleSelectionCleared);
 
     // Cleanup function
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       fabricCanvas.off("selection:created", handleSelectionCreated);
       fabricCanvas.off("selection:updated", handleSelectionUpdated);
       fabricCanvas.off("selection:cleared", handleSelectionCleared);
@@ -457,8 +449,7 @@ function EditorCanvas() {
 
   const handleSave = () => {
     if (fabricCanvas) {
-      const canvasData = fabricCanvas.toJSON(['type', 'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'fontFamily', 'textAlign', 'text', 'src', 'filters', 'clipPath', 'originX', 'originY', 'selectable', 'hasControls', 'hasBorders', 'transparentCorners', 'cornerColor', 'cornerSize', 'hasRotatingPoint']);
-      console.log("Canvas data:", canvasData);
+      setShowTemplateNameDialog(true);
     }
   };
 
@@ -467,16 +458,53 @@ function EditorCanvas() {
   };
 
   const handleClose = () => {
-    // Clear template selection from localStorage
-    localStorage.removeItem('selectedTemplate');
-    localStorage.removeItem('selectedOrientation');
-    // Navigate to home page with full reload
-    window.location.href = '/';
+    // Check if there are any objects on the canvas
+    if (fabricCanvas && fabricCanvas.getObjects().length > 0) {
+      setShowSaveConfirmation(true);
+    } else {
+      // If no objects, just close without confirmation
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleSaveConfirmation = (shouldSave) => {
+    setShowSaveConfirmation(false);
+    if (shouldSave) {
+      setShowTemplateNameDialog(true);
+    } else {
+      // Close without saving
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleTemplateNameSubmit = () => {
+    if (templateName.trim()) {
+      // Save the template with the given name
+      if (fabricCanvas) {
+        const canvasData = fabricCanvas.toJSON(['type', 'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'fontFamily', 'textAlign', 'text', 'src', 'filters', 'clipPath', 'originX', 'originY', 'selectable', 'hasControls', 'hasBorders', 'transparentCorners', 'cornerColor', 'cornerSize', 'hasRotatingPoint']);
+        // Here you would typically save the template data with the name
+        console.log("Saving template:", templateName, canvasData);
+      }
+      // Close the editor
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleTemplateNameCancel = () => {
+    setShowTemplateNameDialog(false);
+    setTemplateName("");
   };
 
   return (
     <>
-      <div>
+      <div className="">
+        
         <div className="flex items-center space-x-12 ms-24 mt-3">
           <div className="flex items-center space-x-5">
             <div className="flex flex-col items-center space-y-1">
@@ -577,10 +605,12 @@ function EditorCanvas() {
             onCanvasSizeChange={setCanvasSize}
             fabricCanvas={fabricCanvas}
             selectedObject={selectedObject}
+            onStrokeColorChange={setStrokeColor}
+            onStrokeWidthChange={setStrokeWidth}
           />
 
           {/* Canvas and Rulers Container */}
-          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[75vh] overflow-y-scroll" ref={containerRef}>
+          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[75vh] overflow-y-auto overflow-x-hidden" ref={containerRef}>
             <HorizontalRuler
               width={canvasSize.width}
               mouseX={mouseX}
@@ -596,7 +626,7 @@ function EditorCanvas() {
                 onRulerMouseMove={(y) => handleRulerMouseMove(y, "y")}
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
-              <div className="flex-1 flex justify-center canvas-container-wrapper ">
+              <div className="flex-1 flex justify-center canvas-container-wrapper">
                 <DesignCanvas
                   activeTool={activeTool}
                   canvasSize={canvasSize}
@@ -604,6 +634,8 @@ function EditorCanvas() {
                   onToolChange={handleToolChange}
                   selectedImage={selectedImage}
                   onCanvasReady={setFabricCanvas}
+                  strokeColor={strokeColor}
+                  strokeWidth={strokeWidth}
                 />
               </div>
             </div>
@@ -613,6 +645,64 @@ function EditorCanvas() {
 
         {/* Right Panel - Properties */}
         {/* <PropertiesPanel selectedObject={selectedObject} /> */}
+
+        {/* Save Confirmation Dialog */}
+        {showSaveConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Do you wish to save the changes made to the template?</h3>
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSaveConfirmation(true)}
+                  className="px-4 py-2"
+                >
+                  Yes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSaveConfirmation(false)}
+                  className="px-4 py-2"
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Template Name Dialog */}
+        {showTemplateNameDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Please enter a name for the new template</h3>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                className="w-full p-2 border rounded mb-4"
+                placeholder="Template name"
+              />
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={handleTemplateNameSubmit}
+                  className="px-4 py-2"
+                  disabled={!templateName.trim()}
+                >
+                  Ok
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleTemplateNameCancel}
+                  className="px-4 py-2"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
      <Calculate
         isOpen={showCalculator}

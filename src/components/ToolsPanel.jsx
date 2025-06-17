@@ -45,7 +45,9 @@ export const ToolsPanel = ({
   canvasSize, 
   onCanvasSizeChange,
   fabricCanvas,
-  selectedObject 
+  selectedObject,
+  onStrokeColorChange,
+  onStrokeWidthChange
 }) => {
   const [selectedBasicShape, setSelectedBasicShape] = useState(null);
   const [selectedArrow, setSelectedArrow] = useState(null);
@@ -267,12 +269,7 @@ export const ToolsPanel = ({
                 onClick={() => {
                   if (selectedObject) {
                     const fillColor = selectedObject.fill || '#000000';
-                    setStrokeColor(fillColor);
-                    selectedObject.set({
-                      stroke: fillColor
-                    });
-                    fabricCanvas.requestRenderAll();
-                    onToolChange("stroke", fillColor);
+                    handleStrokeColorChange(fillColor);
                   }
                 }}
               >
@@ -283,16 +280,7 @@ export const ToolsPanel = ({
                   key={color}
                   className="w-8 h-8 rounded-full cursor-pointer border border-gray-300"
                   style={{ backgroundColor: color }}
-                  onClick={() => {
-                    setStrokeColor(color);
-                    if (selectedObject) {
-                      selectedObject.set({
-                        stroke: color
-                      });
-                      fabricCanvas.requestRenderAll();
-                    }
-                    onToolChange("stroke", color);
-                  }}
+                  onClick={() => handleStrokeColorChange(color)}
                 />
               ))}
             </div>
@@ -370,14 +358,7 @@ export const ToolsPanel = ({
               <DropdownMenuItem 
                 key={thickness}
                 onClick={() => {
-                  setSelectedStrokeThickness(thickness);
-                  if (selectedObject) {
-                    selectedObject.set({
-                      strokeWidth: thickness
-                    });
-                    fabricCanvas.requestRenderAll();
-                  }
-                  onToolChange("point", thickness);
+                  handleStrokeWidthChange(thickness);
                 }}
               >
                 <div 
@@ -468,6 +449,34 @@ export const ToolsPanel = ({
     setSelectedBasicShape(shapeType);
     setBasicShapesOpen(false);
     onToolChange("shape", shapeType, fillColor);
+  };
+
+  const handleStrokeColorChange = (color) => {
+    setStrokeColor(color);
+    if (selectedObject) {
+      selectedObject.set({
+        stroke: color
+      });
+      fabricCanvas.requestRenderAll();
+    }
+    onToolChange("stroke", color);
+    if (onStrokeColorChange) {
+      onStrokeColorChange(color);
+    }
+  };
+
+  const handleStrokeWidthChange = (width) => {
+    setSelectedStrokeThickness(width);
+    if (selectedObject) {
+      selectedObject.set({
+        strokeWidth: width
+      });
+      fabricCanvas.requestRenderAll();
+    }
+    onToolChange("point", width);
+    if (onStrokeWidthChange) {
+      onStrokeWidthChange(width);
+    }
   };
 
   return (

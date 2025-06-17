@@ -634,7 +634,9 @@ export const DesignCanvas = ({
   onObjectSelect,
   onToolChange,
   selectedImage,
-  onCanvasReady
+  onCanvasReady,
+  strokeColor = "#ef4444",
+  strokeWidth = 2
 }) => {
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
@@ -964,149 +966,235 @@ export const DesignCanvas = ({
   }, [activeTool, fabricCanvas, onToolChange, selectedImage]);
 
   // Add text tool selection functionality
-  // Update the text tool useEffect in your DesignCanvas component
-useEffect(() => {
-  if (!fabricCanvas || activeTool !== "text") return;
+  useEffect(() => {
+    if (!fabricCanvas || activeTool !== "text") return;
 
-  let isSelecting = false;
-  let startPoint = null;
-  let selectionRect = null;
+    let isSelecting = false;
+    let startPoint = null;
+    let selectionRect = null;
 
-  const handleMouseDown = (e) => {
-    if (fabricCanvas.getActiveObject()) return;
-    
-    isSelecting = true;
-    startPoint = e.pointer;
-    
-    selectionRect = new Rect({
-      left: startPoint.x,
-      top: startPoint.y,
-      width: 0,
-      height: 0,
-      fill: 'rgba(0, 0, 0, 0.1)',
-      stroke: '#000000',
-      strokeWidth: 1,
-      selectable: false,
-      evented: false
-    });
-    
-    fabricCanvas.add(selectionRect);
-  };
+    const handleMouseDown = (e) => {
+      if (fabricCanvas.getActiveObject()) return;
 
-  const handleMouseMove = (e) => {
-    if (!isSelecting || !selectionRect) return;
-    
-    const currentPoint = e.pointer;
-    const width = Math.abs(currentPoint.x - startPoint.x);
-    const height = Math.abs(currentPoint.y - startPoint.y);
-    
-    selectionRect.set({
-      width: width,
-      height: height,
-      left: Math.min(startPoint.x, currentPoint.x),
-      top: Math.min(startPoint.y, currentPoint.y)
-    });
-    
-    fabricCanvas.requestRenderAll();
-  };
+      isSelecting = true;
+      startPoint = e.pointer;
 
-  const handleMouseUp = () => {
-    if (!isSelecting || !selectionRect) return;
-    
-    isSelecting = false;
-    
-    // Get the exact dimensions of the selection
-    const selectedWidth = selectionRect.width;
-    const selectedHeight = selectionRect.height;
-    const selectedLeft = selectionRect.left;
-    const selectedTop = selectionRect.top;
-    
-    // Remove the selection rectangle
-    fabricCanvas.remove(selectionRect);
-    
-    // Create textbox with fixed dimensions
-    const textbox = new Textbox("", {
-      left: selectedLeft,
-      top: selectedTop,
-      width: selectedWidth,
-      height: selectedHeight,
-      fontSize: 16,
-      fill: "#000000",
-      fontFamily: "Arial",
-      transparentCorners: false,
-      cornerColor: "#000000",
-      cornerSize: 10,
-      hasRotatingPoint: true,
-      selectable: true,
-      editable: true,
-      textAlign: 'left',
-      // Critical properties to maintain dimensions:
-      lockScalingX: true,       // Prevent horizontal scaling
-      lockScalingY: true,       // Prevent vertical scaling
-      lockUniScaling: true,     // Prevent uniform scaling
-      splitByGrapheme: true,    // Better text handling
-      fixedWidth: selectedWidth, // Explicit fixed width
-      fixedHeight: selectedHeight, // Explicit fixed height
-      autoResize: false,        // Prevent auto-resizing
-      // Visual overflow handling:
-      overflow: "scroll",      // Hide text that overflows
-      clipTo: function(ctx) {   // Clip text to the bounds
-        ctx.rect(
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      }
-    });
-
-    // Force the height immediately after creation
-    textbox.set({
-      height: selectedHeight,
-      scaleY: 1
-    });
-
-    // Add event handlers to maintain dimensions
-    textbox.on('changed', function() {
-      // Force maintain original dimensions
-      this.set({
-        height: selectedHeight,
-        scaleY: 1
+      selectionRect = new fabric.Rect({
+        left: startPoint.x,
+        top: startPoint.y,
+        width: 0,
+        height: 0,
+        fill: 'rgba(0, 0, 0, 0.1)',
+        stroke: '#000',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false
       });
-    });
 
-    textbox.on('scaling', function() {
-      // Immediately reset any scaling attempts
-      this.set({
-        height: selectedHeight,
-        scaleY: 1
+      fabricCanvas.add(selectionRect);
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isSelecting || !selectionRect) return;
+
+      const current = e.pointer;
+      const width = Math.abs(current.x - startPoint.x);
+      const height = Math.abs(current.y - startPoint.y);
+
+      console.log('Mouse Move - Selection Dimensions:', {
+        width,
+        height,
+        startPoint,
+        currentPoint: current
       });
-    });
 
-    // Add to canvas and set active
-    fabricCanvas.add(textbox);
-    fabricCanvas.setActiveObject(textbox);
-    
-    // Switch to select tool and enter editing
-    onToolChange("select");
-    textbox.enterEditing();
-    
-    // Focus the textbox immediately
-    textbox.hiddenTextarea.focus();
-    
-    fabricCanvas.requestRenderAll();
-  };
+      selectionRect.set({
+        width,
+        height,
+        left: Math.min(current.x, startPoint.x),
+        top: Math.min(current.y, startPoint.y)
+      });
 
-  fabricCanvas.on("mouse:down", handleMouseDown);
-  fabricCanvas.on("mouse:move", handleMouseMove);
-  fabricCanvas.on("mouse:up", handleMouseUp);
+      fabricCanvas.requestRenderAll();
+    };
 
-  return () => {
-    fabricCanvas.off("mouse:down", handleMouseDown);
-    fabricCanvas.off("mouse:move", handleMouseMove);
-    fabricCanvas.off("mouse:up", handleMouseUp);
-  };
-}, [activeTool, fabricCanvas]);
+    const handleMouseUp = () => {
+      if (!isSelecting || !selectionRect) return;
+      isSelecting = false;
+
+      // Get the actual dimensions from the selection rectangle
+      const width = Math.max(selectionRect.width, 100); // Minimum width of 100px
+      const height = Math.max(selectionRect.height, 50); // Minimum height of 50px
+      const left = selectionRect.left;
+      const top = selectionRect.top;
+
+      console.log('Mouse Up - Final Selection Dimensions:', {
+        originalWidth: selectionRect.width,
+        originalHeight: selectionRect.height,
+        finalWidth: width,
+        finalHeight: height,
+        left,
+        top
+      });
+
+      fabricCanvas.remove(selectionRect);
+
+      // Create textbox with the exact selection dimensions
+      const textbox = new fabric.Textbox("", {
+        left,
+        top,
+        width,
+        height,
+        fontSize: 16,
+        fill: "#000",
+        fontFamily: "Arial",
+        backgroundColor: "transparent",
+        textAlign: "center",
+        editable: true,
+        selectable: true,
+        transparentCorners: false,
+        cornerColor: "#000",
+        cornerSize: 10,
+        hasRotatingPoint: true,
+        splitByGrapheme: true,
+        originX: "left",
+        originY: "top",
+        lockScalingX: false,
+        lockScalingY: false,
+        lockUniScaling: false,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockRotation: false,
+        centeredScaling: false,
+        centeredRotation: true,
+        fontSize: 16,
+        lineHeight: 1,
+        charSpacing: 0,
+        textAlign: "center",
+        overflowY:"scroll",
+        breakWords: true,
+        wordWrap: true,
+        wordWrapWidth: width,
+        fixedHeight: height, // Force fixed height
+        minHeight: height, // Set minimum height
+        maxHeight: height,  // Set maximum height
+        
+      });
+
+
+      // Force the height after creation and maintain it during typing
+      textbox.set({
+        height: height
+      });
+
+      // Handle text changes to maintain height
+      textbox.on("changed", () => {
+        textbox.set({
+          height: height,
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      // Handle scaling to maintain text visibility and height
+      textbox.on("scaling", () => {
+        const newWidth = Math.max(textbox.width * textbox.scaleX, 100);
+        
+        console.log('Scaling - New Dimensions:', {
+          originalWidth: textbox.width,
+          originalHeight: textbox.height,
+          scaleX: textbox.scaleX,
+          scaleY: textbox.scaleY,
+          newWidth,
+          fixedHeight: height
+        });
+
+        textbox.set({
+          width: newWidth,
+          height: height, // Always maintain the original height
+          scaleX: 1,
+          scaleY: 1,
+          fontSize: 16,
+          fixedHeight: height, // Re-enforce fixed height
+          minHeight: height,   // Re-enforce minimum height
+          maxHeight: height,    // Re-enforce maximum height
+        
+        });
+
+        fabricCanvas.requestRenderAll();
+      });
+
+      // Add event listeners for editing state
+      textbox.on("editing:entered", () => {
+        textbox.set({ 
+          backgroundColor: "white",
+          height: height, // Maintain height when entering edit mode
+         
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      textbox.on("editing:exited", () => {
+        textbox.set({ 
+          backgroundColor: "transparent",
+          height: height // Maintain height when exiting edit mode
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      // Add a handler for after scaling is complete
+      textbox.on("scaled", () => {
+        textbox.set({
+          height: height,
+          fixedHeight: height,
+          minHeight: height,
+          maxHeight: height
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      // Add a handler for when modification starts
+      textbox.on("mousedown", () => {
+        textbox.set({
+          height: height,
+          fixedHeight: height,
+          minHeight: height,
+          maxHeight: height
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      // Add a handler for when modification ends
+      textbox.on("modified", () => {
+        textbox.set({
+          height: height,
+          fixedHeight: height,
+          minHeight: height,
+          maxHeight: height,
+          
+        });
+        fabricCanvas.requestRenderAll();
+      });
+
+      fabricCanvas.add(textbox);
+      fabricCanvas.setActiveObject(textbox);
+
+      onToolChange("select");
+      textbox.enterEditing();
+      textbox.hiddenTextarea?.focus();
+
+      fabricCanvas.requestRenderAll();
+    };
+
+    fabricCanvas.on("mouse:down", handleMouseDown);
+    fabricCanvas.on("mouse:move", handleMouseMove);
+    fabricCanvas.on("mouse:up", handleMouseUp);
+
+    return () => {
+      fabricCanvas.off("mouse:down", handleMouseDown);
+      fabricCanvas.off("mouse:move", handleMouseMove);
+      fabricCanvas.off("mouse:up", handleMouseUp);
+    };
+  }, [activeTool, fabricCanvas]);
 
   // Add line tool functionality
   useEffect(() => {
@@ -1122,11 +1210,11 @@ useEffect(() => {
       const pointer = fabricCanvas.getPointer(e.e);
       
       line = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-        stroke: "#15D7FF",
-        strokeWidth: 2,
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
         selectable: true,
         transparentCorners: false,
-        cornerColor: "#15D7FF",
+        cornerColor: strokeColor,
         cornerSize: 10,
         hasRotatingPoint: true,
       });
@@ -1176,7 +1264,7 @@ useEffect(() => {
       fabricCanvas.off("mouse:move", handleMouseMove);
       fabricCanvas.off("mouse:up", handleMouseUp);
     };
-  }, [activeTool, fabricCanvas]);
+  }, [activeTool, fabricCanvas, strokeColor, strokeWidth]);
 
   // Add drawing functionality
   useEffect(() => {
@@ -1184,8 +1272,8 @@ useEffect(() => {
 
     // Initialize free drawing brush
     fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
-    fabricCanvas.freeDrawingBrush.color = "#000000";
-    fabricCanvas.freeDrawingBrush.width = 2;
+    fabricCanvas.freeDrawingBrush.color = strokeColor;
+    fabricCanvas.freeDrawingBrush.width = strokeWidth;
 
     if (activeTool === "pencil") {
       fabricCanvas.isDrawingMode = true;
@@ -1196,21 +1284,25 @@ useEffect(() => {
     return () => {
       fabricCanvas.isDrawingMode = false;
     };
-  }, [activeTool, fabricCanvas]);
+  }, [activeTool, fabricCanvas, strokeColor, strokeWidth]);
 
   // Add keyboard shortcuts for delete and other operations
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const handleKeyDown = (e) => {
+      // Check if we're in a text input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
       const activeObject = fabricCanvas.getActiveObject();
       
       // If we're editing text, don't handle delete/backspace
       if (activeObject && activeObject.isEditing) {
         return;
       }
-
-      if (e.key === "Delete" || e.key === "Backspace") {
+      if (e.key === "Delete") {
         if (activeObject) {
           fabricCanvas.remove(activeObject);
           fabricCanvas.requestRenderAll();
@@ -1455,3 +1547,5 @@ useEffect(() => {
     </div>
   );
 };
+
+
