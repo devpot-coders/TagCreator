@@ -52,6 +52,7 @@ export const Sidebar = () => {
     "Full Page",
   ];
 
+  
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
     localStorage.setItem('selectedTemplate', template);
