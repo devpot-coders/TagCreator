@@ -23,7 +23,7 @@ const ShapesPanel = ({ onDragStart }) => {
     { id: 'cross', name: 'Cross' },
     { id: 'rightTriangle', name: 'Right Triangle' },
     { id: 'roundedRectangle', name: 'Rounded Rectangle' },
-    { id: 'cloud', name: 'Cloud' },
+    // { id: 'cloud', name: 'Cloud' },
     { id: 'pentagon', name: 'Pentagon' },
     { id: 'heptagon', name: 'Heptagon' },
   ];
@@ -62,7 +62,7 @@ const ShapesPanel = ({ onDragStart }) => {
         if (id === 'cloud') {
           object.scale(1.5); // Adjust scale for better visibility
         } else {
-          object.scale(1);
+          object.scale(0.8);
         }
       } else {
         object = ARROWS[id](PREVIEW_SIZE/2, PREVIEW_SIZE/2);
@@ -138,7 +138,7 @@ const ShapesPanel = ({ onDragStart }) => {
                 onDragStart={(e) => handleDragStart(e, shape.id)}
                 className="flex flex-col items-center border border-border rounded hover:bg-gray-50 cursor-move"
               >
-                <div className="w-100 h-full mb-1">
+                <div className="w-100 h-full mb-1 ">
                   <canvas 
                     id={`preview-${shape.id}`} 
                     className='pointer-events-none'
@@ -155,7 +155,7 @@ const ShapesPanel = ({ onDragStart }) => {
                 onDragStart={(e) => handleDragStart(e, arrow.id)}
                 className="flex flex-col items-center  border border-border rounded hover:bg-gray-50 cursor-move"
               >
-                <div className="w-10 h-full mb-1">
+                <div className=" h-full mb-1">
                   <canvas 
                     id={`preview-${arrow.id}`} 
                     className='pointer-events-none'

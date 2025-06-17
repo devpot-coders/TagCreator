@@ -8,9 +8,11 @@ const Index = () => {
     <>
       <Header/>
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex flex-1 ">
+      <div className="flex flex-1 overflow-x-scroll">
         <Sidebar />
-          <Outlet/>
+          <div className="w-full">
+            <Outlet/>
+          </div>
       </div>
     </div>
     </>
