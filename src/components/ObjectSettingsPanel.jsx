@@ -60,7 +60,7 @@ const ObjectSettingsPanel = ({
   const [strokeWidth, setStrokeWidth] = useState(1);
   const [strokeDashArray, setStrokeDashArray] = useState([]);
   const [textValue, setTextValue] = useState('');
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
   const [fontFamily, setFontFamily] = useState('Arial');
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -184,7 +184,7 @@ const ObjectSettingsPanel = ({
           setTextColor(textObjectInGroup.fill || '#000000');
         } else {
           setTextValue('');
-          setFontSize(16);
+          setFontSize(15);
           setFontFamily('Arial');
           setIsBold(false);
           setIsItalic(false);
@@ -211,7 +211,7 @@ const ObjectSettingsPanel = ({
       setStrokeWidth(1);
       setStrokeDashArray([]);
       setTextValue('');
-      setFontSize(16);
+      setFontSize(15);
       setFontFamily('Arial');
       setIsBold(false);
       setIsItalic(false);
@@ -847,23 +847,7 @@ const ObjectSettingsPanel = ({
       textObject = selectedObject;
     }
     if (textObject) {
-      // Store the current dimensions before changing alignment
-      const currentWidth = textObject.width * textObject.scaleX;
-      const currentHeight = textObject.height * textObject.scaleY;
-      
-      // Change the alignment
       textObject.set('textAlign', alignment);
-      
-      // Force the dimensions to stay the same
-      textObject.set({
-        width: currentWidth,
-        height: currentHeight,
-        scaleX: 1,
-        scaleY: 1,
-        fixedWidth: currentWidth,
-        fixedHeight: currentHeight
-      });
-      
       fabricCanvas.requestRenderAll();
     }
   };
@@ -1612,15 +1596,57 @@ const ObjectSettingsPanel = ({
               disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
               <option value="Arial">Default (Arial)</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Helvetica">Helvetica</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-              <option value="Times New Roman">Times New Roman</option>
+              <option value="Arial Black">Arial Black</option>
+              <option value="Arial Narrow">Arial Narrow</option>
+              <option value="Book Antiqua">Book Antiqua</option>
+              <option value="Bookman Old Style">Bookman Old Style</option>
+              <option value="Calibri">Calibri</option>
+              <option value="Cambria">Cambria</option>
+              <option value="Century Gothic">Century Gothic</option>
+              <option value="Comic Sans MS">Comic Sans MS</option>
+              <option value="Consolas">Consolas</option>
+              <option value="Courier New">Courier New</option>
               <option value="Georgia">Georgia</option>
               <option value="Garamond">Garamond</option>
-              <option value="Courier New">Courier New</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Impact">Impact</option>
+              <option value="Lucida Console">Lucida Console</option>
+              <option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+              <option value="Microsoft Sans Serif">Microsoft Sans Serif</option>
+              <option value="Monotype Corsiva">Monotype Corsiva</option>
+              <option value="Palatino Linotype">Palatino Linotype</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+              <option value="Verdana">Verdana</option>
               <option value="Brush Script MT">Brush Script MT</option>
+              <option value="Copperplate Gothic">Copperplate Gothic</option>
+              <option value="Franklin Gothic">Franklin Gothic</option>
+              <option value="Gill Sans">Gill Sans</option>
+              <option value="Segoe UI">Segoe UI</option>
+              <option value="Segoe Script">Segoe Script</option>
+              <option value="Segoe Print">Segoe Print</option>
+              <option value="Rockwell">Rockwell</option>
+              <option value="Optima">Optima</option>
+              <option value="Perpetua">Perpetua</option>
+              <option value="Baskerville">Baskerville</option>
+              <option value="Futura">Futura</option>
+              <option value="Didot">Didot</option>
+              <option value="Bodoni">Bodoni</option>
+              <option value="Century">Century</option>
+              <option value="Avant Garde">Avant Garde</option>
+              <option value="Geneva">Geneva</option>
+              <option value="Courier">Courier</option>
+              <option value="Monaco">Monaco</option>
+              <option value="Andale Mono">Andale Mono</option>
+              <option value="Bradley Hand">Bradley Hand</option>
+              <option value="Chalkboard">Chalkboard</option>
+              <option value="Chalkboard SE">Chalkboard SE</option>
+              <option value="Comic Sans">Comic Sans</option>
+              <option value="Marker Felt">Marker Felt</option>
+              <option value="Menlo">Menlo</option>
+              <option value="Papyrus">Papyrus</option>
+              <option value="Zapfino">Zapfino</option>
             </select>
           </div>
 
