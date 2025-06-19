@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   FiRefreshCw,
   FiSearch,
@@ -10,11 +10,11 @@ import {
   FiEye,
   FiTrash2,
   FiX,
-} from "react-icons/fi";
-import { FaSortDown, FaSortUp } from "react-icons/fa";
+} from 'react-icons/fi';
+import { FaSortDown, FaSortUp } from 'react-icons/fa';
 import { Button } from "../components/ui/button";
-import { createPortal } from "react-dom";
-import { format } from "date-fns";
+import { createPortal } from 'react-dom';
+import { format } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -22,10 +22,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, HelpCircle } from "lucide-react";
-import PrintSettingsPopup from "../components/PrintSettingPopup";
+import PrintSettingsPopup from '../components/PrintSettingPopup';
 import { MdPictureAsPdf } from "react-icons/md";
 import { MdLocalPrintshop } from "react-icons/md";
-import Calculate from "../components/Calculate";
+import axios from 'axios';
+import { Loader } from "./Loader";
+import Calculate from "../components/Calculate"
+
+
+
 
 // Reusable FilterDropdown Component
 const FilterDropdown = ({
@@ -113,11 +118,7 @@ const FilterDropdown = ({
           <div key={item} className="flex items-center mb-1">
             <input
               type="checkbox"
-              checked={
-                selectedItems.has
-                  ? selectedItems.has(item)
-                  : selectedItems.includes(item)
-              }
+              checked={selectedItems.has ? selectedItems.has(item) : selectedItems.includes(item)}
               onChange={() => onItemSelect(item)}
               className="mr-2 h-4 w-4"
             />
@@ -281,7 +282,7 @@ const Print = () => {
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
   const [isInStock, setIsInStock] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
 
   // Pagination states
@@ -292,12 +293,9 @@ const Print = () => {
   // New state variables for filtering
   const [bcFilterDropdown, setBcFilterDropdown] = useState(false);
   const [itemIdFilterDropdown, setItemIdFilterDropdown] = useState(false);
-  const [descriptionFilterDropdown, setDescriptionFilterDropdown] =
-    useState(false);
-  const [mainCategoryFilterDropdown, setMainCategoryFilterDropdown] =
-    useState(false);
-  const [subCategoryFilterDropdown, setSubCategoryFilterDropdown] =
-    useState(false);
+  const [descriptionFilterDropdown, setDescriptionFilterDropdown] = useState(false);
+  const [mainCategoryFilterDropdown, setMainCategoryFilterDropdown] = useState(false);
+  const [subCategoryFilterDropdown, setSubCategoryFilterDropdown] = useState(false);
   const [storeFilterDropdown, setStoreFilterDropdown] = useState(false);
   const [supplierFilterDropdown, setSupplierFilterDropdown] = useState(false);
   const [tagListFilterDropdown, setTagListFilterDropdown] = useState(false);
@@ -328,18 +326,12 @@ const Print = () => {
   const [bcCondition2, setBcCondition2] = useState("Is equal to");
   const [itemIdCondition1, setItemIdCondition1] = useState("Is equal to");
   const [itemIdCondition2, setItemIdCondition2] = useState("Is equal to");
-  const [descriptionCondition1, setDescriptionCondition1] =
-    useState("Is equal to");
-  const [descriptionCondition2, setDescriptionCondition2] =
-    useState("Is equal to");
-  const [mainCategoryCondition1, setMainCategoryCondition1] =
-    useState("Is equal to");
-  const [mainCategoryCondition2, setMainCategoryCondition2] =
-    useState("Is equal to");
-  const [subCategoryCondition1, setSubCategoryCondition1] =
-    useState("Is equal to");
-  const [subCategoryCondition2, setSubCategoryCondition2] =
-    useState("Is equal to");
+  const [descriptionCondition1, setDescriptionCondition1] = useState("Is equal to");
+  const [descriptionCondition2, setDescriptionCondition2] = useState("Is equal to");
+  const [mainCategoryCondition1, setMainCategoryCondition1] = useState("Is equal to");
+  const [mainCategoryCondition2, setMainCategoryCondition2] = useState("Is equal to");
+  const [subCategoryCondition1, setSubCategoryCondition1] = useState("Is equal to");
+  const [subCategoryCondition2, setSubCategoryCondition2] = useState("Is equal to");
   const [storeCondition1, setStoreCondition1] = useState("Is equal to");
   const [storeCondition2, setStoreCondition2] = useState("Is equal to");
   const [supplierCondition1, setSupplierCondition1] = useState("Is equal to");
@@ -357,264 +349,128 @@ const Print = () => {
   const [tagListCombiner, setTagListCombiner] = useState("And");
   const [showCalculator, setShowCalculator] = useState(false);
 
+  const [infoModalMessage, setInfoModalMessage] = useState("");
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
   const [showPrintSettingsPopup, setShowPrintSettingsPopup] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false); // New state for info modal
-  const [infoModalMessage, setInfoModalMessage] = useState(""); // New state for info modal message
 
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const headerRefs = useRef({});
 
+  // Replace dummy categories and subCategories with state
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleAllCategorySubCategoryList = async () => {
+      try {
+        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/category/list.php?company_code=afhstXDev", {
+          params: { company_code: 'afhstXDev' }
+        });
+        // Set categories and subCategories from API response
+        setCategories(response.data.category.map(cat => cat.category_name));
+        setSubCategories(response.data.subCategory.map(sub => sub.sub_category_name));
+      } catch (error) {
+        console.error('Failed to fetch categories/subcategories', error);
+      }
+    };
+    handleAllCategorySubCategoryList();
+  }, []);
+
   // Dummy data for dropdowns
-  const categories = [
-    "Electronics",
-    "Clothing",
-    "Home & Kitchen",
-    "Beauty & Personal Care",
-    "Sports & Outdoors",
-    "Books & Stationery",
-    "Toys & Games",
-    "Health & Wellness",
-    "Automotive",
-    "Jewelry & Accessories",
-  ];
-
-  // Convert subCategories object to array for mapping
-  const subCategories = [
-    "Smartphones",
-    "Laptops",
-    "Tablets",
-    "Accessories",
-    "Audio Devices",
-    "Gaming Consoles",
-    "Men's Wear",
-    "Women's Wear",
-    "Kids' Wear",
-    "Footwear",
-    "Winter Wear",
-    "Summer Collection",
-    "Furniture",
-    "Kitchen Appliances",
-    "Home Decor",
-    "Bedding",
-    "Bath",
-    "Lighting",
-    "Skincare",
-    "Makeup",
-    "Haircare",
-    "Fragrances",
-    "Personal Hygiene",
-    "Men's Grooming",
-    "Fitness Equipment",
-    "Sports Gear",
-    "Outdoor Gear",
-    "Team Sports",
-    "Yoga & Meditation",
-    "Fiction",
-    "Non-Fiction",
-    "Educational",
-    "Office Supplies",
-    "Art Supplies",
-    "Gift Items",
-    "Educational Toys",
-    "Action Figures",
-    "Board Games",
-    "Puzzles",
-    "Outdoor Toys",
-    "Video Games",
-    "Vitamins & Supplements",
-    "Medical Devices",
-    "Fitness Trackers",
-    "Health Monitors",
-    "First Aid",
-    "Car Accessories",
-    "Car Care",
-    "Motorcycle Parts",
-    "Tools & Equipment",
-    "GPS & Navigation",
-    "Necklaces",
-    "Earrings",
-    "Watches",
-    "Bags & Wallets",
-    "Sunglasses",
-    "Belts",
-  ];
-
   const stores = [
-    "Mega Mall - Downtown",
-    "City Center Plaza",
-    "Westside Shopping Complex",
-    "Eastside Retail Park",
-    "Northside Mall",
-    "Southside Shopping Center",
-    "Metro Retail Hub",
-    "Grand Plaza Mall",
-    "Central Market",
-    "Premium Outlets",
+    'Mega Mall - Downtown',
+    'City Center Plaza',
+    'Westside Shopping Complex',
+    'Eastside Retail Park',
+    'Northside Mall',
+    'Southside Shopping Center',
+    'Metro Retail Hub',
+    'Grand Plaza Mall',
+    'Central Market',
+    'Premium Outlets'
   ];
 
   const suppliers = [
-    "Global Electronics Ltd.",
-    "Fashion Forward Inc.",
-    "Home Essentials Co.",
-    "Beauty World International",
-    "Sports Gear Pro",
-    "Book Haven Publishers",
-    "Toy Kingdom Corp",
-    "Health Plus Suppliers",
-    "Auto Parts Direct",
-    "Luxury Accessories Co.",
-    "Smart Tech Solutions",
-    "Urban Fashion House",
-    "Kitchen Master Supplies",
-    "Wellness Products Inc.",
-    "Outdoor Adventure Gear",
+    'Global Electronics Ltd.',
+    'Fashion Forward Inc.',
+    'Home Essentials Co.',
+    'Beauty World International',
+    'Sports Gear Pro',
+    'Book Haven Publishers',
+    'Toy Kingdom Corp',
+    'Health Plus Suppliers',
+    'Auto Parts Direct',
+    'Luxury Accessories Co.',
+    'Smart Tech Solutions',
+    'Urban Fashion House',
+    'Kitchen Master Supplies',
+    'Wellness Products Inc.',
+    'Outdoor Adventure Gear'
   ];
 
-  // Dummy table data (you'll replace this with real data)
-  const tableData = [
-    {
-      id: 1,
-      bc: "BC-101",
-      itemId: "ITEM-101",
-      description: "iPhone 13 Pro Max",
-      mainCategory: "Electronics",
-      subCategory: "Smartphones",
-      store: "Mega Mall - Downtown",
-      supplier: "Global Electronics Ltd.",
-    },
-    {
-      id: 2,
-      bc: "BC-102",
-      itemId: "ITEM-102",
-      description: "Men's Casual Shirt",
-      mainCategory: "Clothing",
-      subCategory: "Men's Wear",
-      store: "City Center Plaza",
-      supplier: "Fashion Forward Inc.",
-    },
-    {
-      id: 3,
-      bc: "BC-103",
-      itemId: "ITEM-103",
-      description: 'Smart LED TV 55"',
-      mainCategory: "Electronics",
-      subCategory: "Accessories",
-      store: "Westside Shopping Complex",
-      supplier: "Smart Tech Solutions",
-    },
-    {
-      id: 4,
-      bc: "BC-104",
-      itemId: "ITEM-104",
-      description: "Kitchen Mixer Grinder",
-      mainCategory: "Home & Kitchen",
-      subCategory: "Kitchen Appliances",
-      store: "Eastside Retail Park",
-      supplier: "Kitchen Master Supplies",
-    },
-    {
-      id: 5,
-      bc: "BC-105",
-      itemId: "ITEM-105",
-      description: "Premium Skincare Set",
-      mainCategory: "Beauty & Personal Care",
-      subCategory: "Skincare",
-      store: "Northside Mall",
-      supplier: "Beauty World International",
-    },
-    {
-      id: 6,
-      bc: "BC-106",
-      itemId: "ITEM-106",
-      description: "Yoga Mat Premium",
-      mainCategory: "Sports & Outdoors",
-      subCategory: "Yoga & Meditation",
-      store: "Southside Shopping Center",
-      supplier: "Outdoor Adventure Gear",
-    },
-    {
-      id: 7,
-      bc: "BC-107",
-      itemId: "ITEM-107",
-      description: "Best Seller Novel",
-      mainCategory: "Books & Stationery",
-      subCategory: "Fiction",
-      store: "Metro Retail Hub",
-      supplier: "Book Haven Publishers",
-    },
-    {
-      id: 8,
-      bc: "BC-108",
-      itemId: "ITEM-108",
-      description: "Educational Building Blocks",
-      mainCategory: "Toys & Games",
-      subCategory: "Educational Toys",
-      store: "Grand Plaza Mall",
-      supplier: "Toy Kingdom Corp",
-    },
-    {
-      id: 9,
-      bc: "BC-109",
-      itemId: "ITEM-109",
-      description: "Digital Blood Pressure Monitor",
-      mainCategory: "Health & Wellness",
-      subCategory: "Health Monitors",
-      store: "Central Market",
-      supplier: "Health Plus Suppliers",
-    },
-    {
-      id: 10,
-      bc: "BC-110",
-      itemId: "ITEM-110",
-      description: "Car GPS Navigation System",
-      mainCategory: "Automotive",
-      subCategory: "GPS & Navigation",
-      store: "Premium Outlets",
-      supplier: "Auto Parts Direct",
-    },
-  ];
+  // Replace dummy table data with API data
+  const [tableData, setTableData] = useState([]);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=afhstXDev", {
+          params: { company_code: 'afhstXDev' }
+        });
+        // Map API data to table columns
+        const mapped = (response.data.records || []).map((item, idx) => ({
+          id: item.inventory_id || idx,
+          bc: item.inventory_id || '',
+          itemId: item.item_id || '',
+          description: item.description_1 || item.description_2 || '',
+          mainCategory: item.main_category_name || '',
+          subCategory: item.sub_category_name || '',
+          store: item.store_name || '',
+          supplier: item.supplier_name || '',
+        }));
+        setTableData(mapped);
+        setFilteredData(mapped);
+      } catch (error) {
+        setTableData([]);
+        setFilteredData([]);
+        console.error('Failed to fetch inventory', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInventory();
+  }, []);
 
   // Get unique values
   const uniqueBcs = Array.from(new Set(tableData.map((item) => item.bc)));
-  const uniqueItemIds = Array.from(
-    new Set(tableData.map((item) => item.itemId))
-  );
-  const uniqueDescriptions = Array.from(
-    new Set(tableData.map((item) => item.description))
-  );
-  const uniqueMainCategories = Array.from(
-    new Set(tableData.map((item) => item.mainCategory))
-  );
-  const uniqueSubCategories = Array.from(
-    new Set(tableData.map((item) => item.subCategory))
-  );
+  const uniqueItemIds = Array.from(new Set(tableData.map((item) => item.itemId)));
+  const uniqueDescriptions = Array.from(new Set(tableData.map((item) => item.description)));
+  const uniqueMainCategories = Array.from(new Set(tableData.map((item) => item.mainCategory)));
+  const uniqueSubCategories = Array.from(new Set(tableData.map((item) => item.subCategory)));
   const uniqueStores = Array.from(new Set(tableData.map((item) => item.store)));
-  const uniqueSuppliers = Array.from(
-    new Set(tableData.map((item) => item.supplier))
-  );
+  const uniqueSuppliers = Array.from(new Set(tableData.map((item) => item.supplier)));
 
   // Add these lines to define the "all selected" variables
   const allBcsSelected = selectedBcs.length === uniqueBcs.length;
   const allItemIdsSelected = selectedItemIds.length === uniqueItemIds.length;
-  const allDescriptionsSelected =
-    selectedDescriptions.length === uniqueDescriptions.length;
-  const allMainCategoriesSelected =
-    selectedMainCategories.length === uniqueMainCategories.length;
-  const allSubCategoriesSelected =
-    selectedSubCategories.length === uniqueSubCategories.length;
+  const allDescriptionsSelected = selectedDescriptions.length === uniqueDescriptions.length;
+  const allMainCategoriesSelected = selectedMainCategories.length === uniqueMainCategories.length;
+  const allSubCategoriesSelected = selectedSubCategories.length === uniqueSubCategories.length;
   const allStoresSelected = selectedStores.length === uniqueStores.length;
-  const allSuppliersSelected =
-    selectedSuppliers.length === uniqueSuppliers.length;
+  const allSuppliersSelected = selectedSuppliers.length === uniqueSuppliers.length;
 
   // Define a new state for selected Tag List filter options
   const [selectedTagListStatus, setSelectedTagListStatus] = useState(new Set());
 
   // New unique values for Tag List filter (derived from selection state)
-  const uniqueTagListItems = ["Selected", "False"]; // Changed 'Not Selected' to 'False'
+  const uniqueTagListItems = ['Selected', 'False']; // Changed 'Not Selected' to 'False'
 
   // Determine if all Tag List items are selected
-  const allTagListItemsSelected =
-    selectedTagListStatus.size === uniqueTagListItems.length;
+  const allTagListItemsSelected = selectedTagListStatus.size === uniqueTagListItems.length;
 
   // Add filteredData state
   const [filteredData, setFilteredData] = useState(tableData);
@@ -622,23 +478,23 @@ const Print = () => {
   // Add new state for sorting
   const [sortConfig, setSortConfig] = useState({
     key: null,
-    direction: null,
+    direction: null
   });
 
   // Add sort handler
   const handleSort = (key) => {
-    let direction = "ascending";
-    if (sortConfig.key === key && sortConfig.direction === "ascending") {
-      direction = "descending";
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
     }
     setSortConfig({ key, direction });
 
     const sortedData = [...filteredData].sort((a, b) => {
       if (a[key] < b[key]) {
-        return direction === "ascending" ? -1 : 1;
+        return direction === 'ascending' ? -1 : 1;
       }
       if (a[key] > b[key]) {
-        return direction === "ascending" ? 1 : -1;
+        return direction === 'ascending' ? 1 : -1;
       }
       return 0;
     });
@@ -652,25 +508,25 @@ const Print = () => {
 
     // Apply top dropdown filters
     if (selectedCategories.length > 0) {
-      currentFilteredList = currentFilteredList.filter((item) =>
+      currentFilteredList = currentFilteredList.filter(item =>
         selectedCategories.includes(item.mainCategory)
       );
     }
 
     if (selectedSubCategories.length > 0) {
-      currentFilteredList = currentFilteredList.filter((item) =>
+      currentFilteredList = currentFilteredList.filter(item =>
         selectedSubCategories.includes(item.subCategory)
       );
     }
 
     if (selectedStores.length > 0) {
-      currentFilteredList = currentFilteredList.filter((item) =>
+      currentFilteredList = currentFilteredList.filter(item =>
         selectedStores.includes(item.store)
       );
     }
 
     if (selectedSuppliers.length > 0) {
-      currentFilteredList = currentFilteredList.filter((item) =>
+      currentFilteredList = currentFilteredList.filter(item =>
         selectedSuppliers.includes(item.supplier)
       );
     }
@@ -722,15 +578,12 @@ const Print = () => {
     if (selectedTagListStatus.size > 0) {
       currentFilteredList = currentFilteredList.filter((item) => {
         const isItemSelected = selectedItems.includes(item.id);
-        if (
-          selectedTagListStatus.has("Selected") &&
-          selectedTagListStatus.has("False")
-        ) {
+        if (selectedTagListStatus.has('Selected') && selectedTagListStatus.has('False')) {
           // Both are selected, no effective filter on this dimension
           return true;
-        } else if (selectedTagListStatus.has("Selected")) {
+        } else if (selectedTagListStatus.has('Selected')) {
           return isItemSelected;
-        } else if (selectedTagListStatus.has("False")) {
+        } else if (selectedTagListStatus.has('False')) {
           return !isItemSelected;
         }
         return false;
@@ -781,24 +634,14 @@ const Print = () => {
         let match2 = true;
 
         if (descriptionSearchQuery1) {
-          match1 = applyCondition(
-            description,
-            descriptionSearchQuery1,
-            descriptionCondition1
-          );
+          match1 = applyCondition(description, descriptionSearchQuery1, descriptionCondition1);
         }
 
         if (descriptionSearchQuery2) {
-          match2 = applyCondition(
-            description,
-            descriptionSearchQuery2,
-            descriptionCondition2
-          );
+          match2 = applyCondition(description, descriptionSearchQuery2, descriptionCondition2);
         }
 
-        return descriptionCombiner === "And"
-          ? match1 && match2
-          : match1 || match2;
+        return descriptionCombiner === "And" ? match1 && match2 : match1 || match2;
       });
     }
 
@@ -809,24 +652,14 @@ const Print = () => {
         let match2 = true;
 
         if (mainCategorySearchQuery1) {
-          match1 = applyCondition(
-            category,
-            mainCategorySearchQuery1,
-            mainCategoryCondition1
-          );
+          match1 = applyCondition(category, mainCategorySearchQuery1, mainCategoryCondition1);
         }
 
         if (mainCategorySearchQuery2) {
-          match2 = applyCondition(
-            category,
-            mainCategorySearchQuery2,
-            mainCategoryCondition2
-          );
+          match2 = applyCondition(category, mainCategorySearchQuery2, mainCategoryCondition2);
         }
 
-        return mainCategoryCombiner === "And"
-          ? match1 && match2
-          : match1 || match2;
+        return mainCategoryCombiner === "And" ? match1 && match2 : match1 || match2;
       });
     }
 
@@ -837,24 +670,14 @@ const Print = () => {
         let match2 = true;
 
         if (subCategorySearchQuery1) {
-          match1 = applyCondition(
-            category,
-            subCategorySearchQuery1,
-            subCategoryCondition1
-          );
+          match1 = applyCondition(category, subCategorySearchQuery1, subCategoryCondition1);
         }
 
         if (subCategorySearchQuery2) {
-          match2 = applyCondition(
-            category,
-            subCategorySearchQuery2,
-            subCategoryCondition2
-          );
+          match2 = applyCondition(category, subCategorySearchQuery2, subCategoryCondition2);
         }
 
-        return subCategoryCombiner === "And"
-          ? match1 && match2
-          : match1 || match2;
+        return subCategoryCombiner === "And" ? match1 && match2 : match1 || match2;
       });
     }
 
@@ -883,19 +706,11 @@ const Print = () => {
         let match2 = true;
 
         if (supplierSearchQuery1) {
-          match1 = applyCondition(
-            supplier,
-            supplierSearchQuery1,
-            supplierCondition1
-          );
+          match1 = applyCondition(supplier, supplierSearchQuery1, supplierCondition1);
         }
 
         if (supplierSearchQuery2) {
-          match2 = applyCondition(
-            supplier,
-            supplierSearchQuery2,
-            supplierCondition2
-          );
+          match2 = applyCondition(supplier, supplierSearchQuery2, supplierCondition2);
         }
 
         return supplierCombiner === "And" ? match1 && match2 : match1 || match2;
@@ -909,19 +724,11 @@ const Print = () => {
         let match2 = true;
 
         if (tagListSearchQuery1) {
-          match1 = applyCondition(
-            tagListStatus,
-            tagListSearchQuery1,
-            tagListCondition1
-          );
+          match1 = applyCondition(tagListStatus, tagListSearchQuery1, tagListCondition1);
         }
 
         if (tagListSearchQuery2) {
-          match2 = applyCondition(
-            tagListStatus,
-            tagListSearchQuery2,
-            tagListCondition2
-          );
+          match2 = applyCondition(tagListStatus, tagListSearchQuery2, tagListCondition2);
         }
 
         return tagListCombiner === "And" ? match1 && match2 : match1 || match2;
@@ -988,7 +795,7 @@ const Print = () => {
     subCategoryCombiner,
     storeCombiner,
     supplierCombiner,
-    tagListCombiner,
+    tagListCombiner
   ]);
 
   // Add useEffect to trigger filtering when selections change
@@ -1051,7 +858,7 @@ const Print = () => {
     subCategoryCombiner,
     storeCombiner,
     supplierCombiner,
-    tagListCombiner,
+    tagListCombiner
   ]);
 
   // Update pagination to use filteredData
@@ -1068,28 +875,6 @@ const Print = () => {
     }
   }, [filteredData, itemsPerPage]);
 
-  const handleOpenCalculator = () => {
-    if (selectedItems.length === 0) {
-      setInfoModalMessage("No records selected / available to merge");
-      setShowInfoModal(true);
-      return;
-    }
-    setShowCalculator(true);
-  };
-
-  const handleCloseCalculator = () => {
-    setShowCalculator(false);
-  };
-
-  const handleSaveCalculator = (calculations) => {
-    console.log("Saved Field Calculations from Header:", calculations);
-    setShowCalculator(false);
-  };
-
-  const handleCloseInfoModal = () => {
-    setShowInfoModal(false);
-  };
-
   // Handle page change
   const handlePageChange = (pageNumber) => {
     if (pageNumber < 1) {
@@ -1099,6 +884,10 @@ const Print = () => {
     } else {
       setCurrentPage(pageNumber);
     }
+  };
+
+  const handleCloseInfoModal = () => {
+    setShowInfoModal(false);
   };
 
   // Handle items per page change
@@ -1132,9 +921,7 @@ const Print = () => {
 
   const handleSelectAll = () => {
     setSelectedItems((prev) =>
-      prev.length === currentItems.length
-        ? []
-        : currentItems.map((item) => item.id)
+      prev.length === currentItems.length ? [] : currentItems.map((item) => item.id)
     );
   };
 
@@ -1151,33 +938,25 @@ const Print = () => {
 
   const handleItemIdCheckbox = useCallback((itemId) => {
     setSelectedItemIds((prev) =>
-      prev.includes(itemId)
-        ? prev.filter((i) => i !== itemId)
-        : [...prev, itemId]
+      prev.includes(itemId) ? prev.filter((i) => i !== itemId) : [...prev, itemId]
     );
   }, []);
 
   const handleDescriptionCheckbox = useCallback((description) => {
     setSelectedDescriptions((prev) =>
-      prev.includes(description)
-        ? prev.filter((d) => d !== description)
-        : [...prev, description]
+      prev.includes(description) ? prev.filter((d) => d !== description) : [...prev, description]
     );
   }, []);
 
   const handleMainCategoryCheckbox = useCallback((category) => {
     setSelectedMainCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   }, []);
 
   const handleSubCategoryCheckbox = useCallback((category) => {
     setSelectedSubCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   }, []);
 
@@ -1189,9 +968,7 @@ const Print = () => {
 
   const handleSupplierCheckbox = useCallback((supplier) => {
     setSelectedSuppliers((prev) =>
-      prev.includes(supplier)
-        ? prev.filter((s) => s !== supplier)
-        : [...prev, supplier]
+      prev.includes(supplier) ? prev.filter((s) => s !== supplier) : [...prev, supplier]
     );
   }, []);
 
@@ -1222,16 +999,12 @@ const Print = () => {
   }, [allDescriptionsSelected, uniqueDescriptions]);
 
   const handleSelectAllMainCategories = useCallback(() => {
-    setSelectedMainCategories(
-      allMainCategoriesSelected ? [] : uniqueMainCategories
-    );
+    setSelectedMainCategories(allMainCategoriesSelected ? [] : uniqueMainCategories);
   }, [allMainCategoriesSelected, uniqueMainCategories]);
 
   // Handle Select All for Tag List status
   const handleSelectAllTagListStatus = useCallback(() => {
-    setSelectedTagListStatus(
-      allTagListItemsSelected ? new Set() : new Set(uniqueTagListItems)
-    );
+    setSelectedTagListStatus(allTagListItemsSelected ? new Set() : new Set(uniqueTagListItems));
   }, [allTagListItemsSelected, uniqueTagListItems]);
 
   // Apply condition helper function
@@ -1311,6 +1084,9 @@ const Print = () => {
     setCurrentPage(1);
   }, [tableData]);
 
+
+  
+
   const handleCloseDropdown = useCallback((dropdownType) => {
     switch (dropdownType) {
       case "bc":
@@ -1353,6 +1129,25 @@ const Print = () => {
     }
   };
 
+
+const handleOpenCalculator = () => {
+    if (selectedItems.length === 0) {
+      setInfoModalMessage("No records selected / available to merge");
+      setShowInfoModal(true);
+      return;
+    }
+    setShowCalculator(true);
+  };
+
+  const handleCloseCalculator = () => {
+    setShowCalculator(false);
+  };
+
+  const handleSaveCalculator = (calculations) => {
+    console.log("Saved Field Calculations from Header:", calculations);
+    setShowCalculator(false);
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       if (bcFilterDropdown) updateDropdownPosition("bc");
@@ -1378,6 +1173,7 @@ const Print = () => {
     tagListFilterDropdown,
   ]);
 
+  
   const MemoizedSortableHeader = React.memo(({ label, columnKey }) => {
     return (
       <th
@@ -1420,25 +1216,15 @@ const Print = () => {
         >
           {label}
           <div className="flex flex-col">
-            <FaSortUp
-              className={`text-xs -mb-1 cursor-pointer ${
-                sortConfig.key === columnKey &&
-                sortConfig.direction === "ascending"
-                  ? "text-blue-500"
-                  : ""
-              }`}
+            <FaSortUp 
+              className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleSort(columnKey);
               }}
             />
-            <FaSortDown
-              className={`text-xs -mt-1 cursor-pointer ${
-                sortConfig.key === columnKey &&
-                sortConfig.direction === "descending"
-                  ? "text-blue-500"
-                  : ""
-              }`}
+            <FaSortDown 
+              className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleSort(columnKey);
@@ -1489,10 +1275,8 @@ const Print = () => {
               onItemSelect: handleItemIdCheckbox,
               searchQuery1: itemIdSearchQuery1,
               searchQuery2: itemIdSearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setItemIdSearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setItemIdSearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setItemIdSearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setItemIdSearchQuery2(e.target.value),
               condition1: itemIdCondition1,
               condition2: itemIdCondition2,
               onCondition1Change: (e) => setItemIdCondition1(e.target.value),
@@ -1515,16 +1299,12 @@ const Print = () => {
               onItemSelect: handleDescriptionCheckbox,
               searchQuery1: descriptionSearchQuery1,
               searchQuery2: descriptionSearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setDescriptionSearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setDescriptionSearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setDescriptionSearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setDescriptionSearchQuery2(e.target.value),
               condition1: descriptionCondition1,
               condition2: descriptionCondition2,
-              onCondition1Change: (e) =>
-                setDescriptionCondition1(e.target.value),
-              onCondition2Change: (e) =>
-                setDescriptionCondition2(e.target.value),
+              onCondition1Change: (e) => setDescriptionCondition1(e.target.value),
+              onCondition2Change: (e) => setDescriptionCondition2(e.target.value),
               combiner: descriptionCombiner,
               onCombinerChange: (e) => setDescriptionCombiner(e.target.value),
               position: dropdownPosition,
@@ -1543,16 +1323,12 @@ const Print = () => {
               onItemSelect: handleMainCategoryCheckbox,
               searchQuery1: mainCategorySearchQuery1,
               searchQuery2: mainCategorySearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setMainCategorySearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setMainCategorySearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setMainCategorySearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setMainCategorySearchQuery2(e.target.value),
               condition1: mainCategoryCondition1,
               condition2: mainCategoryCondition2,
-              onCondition1Change: (e) =>
-                setMainCategoryCondition1(e.target.value),
-              onCondition2Change: (e) =>
-                setMainCategoryCondition2(e.target.value),
+              onCondition1Change: (e) => setMainCategoryCondition1(e.target.value),
+              onCondition2Change: (e) => setMainCategoryCondition2(e.target.value),
               combiner: mainCategoryCombiner,
               onCombinerChange: (e) => setMainCategoryCombiner(e.target.value),
               position: dropdownPosition,
@@ -1571,16 +1347,12 @@ const Print = () => {
               onItemSelect: handleSubCategoryCheckbox,
               searchQuery1: subCategorySearchQuery1,
               searchQuery2: subCategorySearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setSubCategorySearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setSubCategorySearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setSubCategorySearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setSubCategorySearchQuery2(e.target.value),
               condition1: subCategoryCondition1,
               condition2: subCategoryCondition2,
-              onCondition1Change: (e) =>
-                setSubCategoryCondition1(e.target.value),
-              onCondition2Change: (e) =>
-                setSubCategoryCondition2(e.target.value),
+              onCondition1Change: (e) => setSubCategoryCondition1(e.target.value),
+              onCondition2Change: (e) => setSubCategoryCondition2(e.target.value),
               combiner: subCategoryCombiner,
               onCombinerChange: (e) => setSubCategoryCombiner(e.target.value),
               position: dropdownPosition,
@@ -1623,10 +1395,8 @@ const Print = () => {
               onItemSelect: handleSupplierCheckbox,
               searchQuery1: supplierSearchQuery1,
               searchQuery2: supplierSearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setSupplierSearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setSupplierSearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setSupplierSearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setSupplierSearchQuery2(e.target.value),
               condition1: supplierCondition1,
               condition2: supplierCondition2,
               onCondition1Change: (e) => setSupplierCondition1(e.target.value),
@@ -1649,10 +1419,8 @@ const Print = () => {
               onItemSelect: handleTagListStatusCheckbox,
               searchQuery1: tagListSearchQuery1,
               searchQuery2: tagListSearchQuery2,
-              onSearchQuery1Change: (e) =>
-                setTagListSearchQuery1(e.target.value),
-              onSearchQuery2Change: (e) =>
-                setTagListSearchQuery2(e.target.value),
+              onSearchQuery1Change: (e) => setTagListSearchQuery1(e.target.value),
+              onSearchQuery2Change: (e) => setTagListSearchQuery2(e.target.value),
               condition1: tagListCondition1,
               condition2: tagListCondition2,
               onCondition1Change: (e) => setTagListCondition1(e.target.value),
@@ -1682,11 +1450,11 @@ const Print = () => {
   // Handlers for category dropdown
   const handleCategoryChange = (category) => {
     setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   };
+
+  
 
   const handleSelectAllCategories = () => {
     setSelectedCategories((prev) =>
@@ -1697,9 +1465,7 @@ const Print = () => {
   // Handlers for subcategory dropdown
   const handleSubCategoryChange = (subCategory) => {
     setSelectedSubCategories((prev) =>
-      prev.includes(subCategory)
-        ? prev.filter((c) => c !== subCategory)
-        : [...prev, subCategory]
+      prev.includes(subCategory) ? prev.filter((c) => c !== subCategory) : [...prev, subCategory]
     );
   };
 
@@ -1725,9 +1491,7 @@ const Print = () => {
   // Handlers for supplier dropdown
   const handleSupplierChange = (supplier) => {
     setSelectedSuppliers((prev) =>
-      prev.includes(supplier)
-        ? prev.filter((s) => s !== supplier)
-        : [...prev, supplier]
+      prev.includes(supplier) ? prev.filter((s) => s !== supplier) : [...prev, supplier]
     );
   };
 
@@ -1738,30 +1502,26 @@ const Print = () => {
   };
 
   // Add search functionality
-  const handleSearch = useCallback(
-    (searchValue) => {
-      if (!searchValue.trim()) {
-        setFilteredData(tableData);
-        return;
-      }
+  const handleSearch = useCallback((searchValue) => {
+    if (!searchValue.trim()) {
+      setFilteredData(tableData);
+      return;
+    }
 
-      const searchLower = searchValue.toLowerCase();
-      const filtered = tableData.filter(
-        (item) =>
-          item.bc.toLowerCase().includes(searchLower) ||
-          item.itemId.toLowerCase().includes(searchLower) ||
-          item.description.toLowerCase().includes(searchLower) ||
-          item.mainCategory.toLowerCase().includes(searchLower) ||
-          item.subCategory.toLowerCase().includes(searchLower) ||
-          item.store.toLowerCase().includes(searchLower) ||
-          item.supplier.toLowerCase().includes(searchLower)
-      );
+    const searchLower = searchValue.toLowerCase();
+    const filtered = tableData.filter(item =>
+      item.bc.toLowerCase().includes(searchLower) ||
+      item.itemId.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower) ||
+      item.mainCategory.toLowerCase().includes(searchLower) ||
+      item.subCategory.toLowerCase().includes(searchLower) ||
+      item.store.toLowerCase().includes(searchLower) ||
+      item.supplier.toLowerCase().includes(searchLower)
+    );
 
-      setFilteredData(filtered);
-      setCurrentPage(1);
-    },
-    [tableData]
-  );
+    setFilteredData(filtered);
+    setCurrentPage(1);
+  }, [tableData]);
 
   // Add refresh functionality
   const handleRefresh = useCallback(() => {
@@ -1778,7 +1538,7 @@ const Print = () => {
     setSelectedStores([]);
     setSelectedSuppliers([]);
     setSelectedTagListStatus(new Set());
-
+   
     // Reset all search queries
     setBcSearchQuery1("");
     setBcSearchQuery2("");
@@ -1796,7 +1556,7 @@ const Print = () => {
     setSupplierSearchQuery2("");
     setTagListSearchQuery1("");
     setTagListSearchQuery2("");
-
+   
     // Reset all conditions
     setBcCondition1("Is equal to");
     setBcCondition2("Is equal to");
@@ -1814,7 +1574,7 @@ const Print = () => {
     setSupplierCondition2("Is equal to");
     setTagListCondition1("Is equal to");
     setTagListCondition2("Is equal to");
-
+   
     // Reset all combiners
     setBcCombiner("And");
     setItemIdCombiner("And");
@@ -1824,10 +1584,10 @@ const Print = () => {
     setStoreCombiner("And");
     setSupplierCombiner("And");
     setTagListCombiner("And");
-
+   
     // Reset search input
     setSearchQuery("");
-
+   
     // Reset filtered data
     setFilteredData(tableData);
     setCurrentPage(1);
@@ -1848,7 +1608,7 @@ const Print = () => {
     setSelectedStores([]);
     setSelectedSuppliers([]);
     setSelectedTagListStatus(new Set());
-
+   
     // Reset all search queries
     setBcSearchQuery1("");
     setBcSearchQuery2("");
@@ -1866,7 +1626,7 @@ const Print = () => {
     setSupplierSearchQuery2("");
     setTagListSearchQuery1("");
     setTagListSearchQuery2("");
-
+   
     // Reset all conditions
     setBcCondition1("Is equal to");
     setBcCondition2("Is equal to");
@@ -1884,7 +1644,7 @@ const Print = () => {
     setSupplierCondition2("Is equal to");
     setTagListCondition1("Is equal to");
     setTagListCondition2("Is equal to");
-
+   
     // Reset all combiners
     setBcCombiner("And");
     setItemIdCombiner("And");
@@ -1894,10 +1654,10 @@ const Print = () => {
     setStoreCombiner("And");
     setSupplierCombiner("And");
     setTagListCombiner("And");
-
+   
     // Reset search input
     setSearchQuery("");
-
+   
     // Reset filtered data
     setFilteredData(tableData);
     setCurrentPage(1);
@@ -1907,9 +1667,7 @@ const Print = () => {
     <div className="min-h-screen bg-gray-50 p-4 w-full">
       {/* Top Controls */}
       <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-        <span className="font-semibold text-gray-700">
-          Select Records To Print
-        </span>
+        <span className="font-semibold text-gray-700">Select Records To Print</span>
 
         <div className="flex flex-wrap items-center gap-2 flex-grow justify-end">
           {/* Category Dropdown */}
@@ -1932,11 +1690,7 @@ const Print = () => {
                 setShowSupplierDropdown(false);
               }}
             >
-              <span>
-                {selectedCategories.length > 0
-                  ? `${selectedCategories.length} Selected`
-                  : "Select Category"}
-              </span>
+              <span>{selectedCategories.length > 0 ? `${selectedCategories.length} Selected` : 'Select Category'}</span>
               <FaSortDown className="ml-2 text-gray-500" />
             </div>
             {showCategoryDropdown && (
@@ -1971,9 +1725,7 @@ const Print = () => {
                 onChange={handleSelectAllSubCategories}
                 className="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
               />
-              <span className="text-sm font-medium">
-                Select All SubCategories
-              </span>
+              <span className="text-sm font-medium">Select All SubCategories</span>
             </div>
             <div
               className="border border-gray-300 px-3 py-1 text-sm flex items-center justify-between cursor-pointer bg-white rounded shadow-sm w-full"
@@ -1984,11 +1736,7 @@ const Print = () => {
                 setShowSupplierDropdown(false);
               }}
             >
-              <span>
-                {selectedSubCategories.length > 0
-                  ? `${selectedSubCategories.length} Selected`
-                  : "Select SubCategory"}
-              </span>
+              <span>{selectedSubCategories.length > 0 ? `${selectedSubCategories.length} Selected` : 'Select SubCategory'}</span>
               <FaSortDown className="ml-2 text-gray-500" />
             </div>
             {showSubCategoryDropdown && (
@@ -2034,11 +1782,7 @@ const Print = () => {
                 setShowSupplierDropdown(false);
               }}
             >
-              <span>
-                {selectedStores.length > 0
-                  ? `${selectedStores.length} Selected`
-                  : "Select Store"}
-              </span>
+              <span>{selectedStores.length > 0 ? `${selectedStores.length} Selected` : 'Select Store'}</span>
               <FaSortDown className="ml-2 text-gray-500" />
             </div>
             {showStoreDropdown && (
@@ -2084,11 +1828,7 @@ const Print = () => {
                 setShowStoreDropdown(false);
               }}
             >
-              <span>
-                {selectedSuppliers.length > 0
-                  ? `${selectedSuppliers.length} Selected`
-                  : "Select Supplier"}
-              </span>
+              <span>{selectedSuppliers.length > 0 ? `${selectedSuppliers.length} Selected` : 'Select Supplier'}</span>
               <FaSortDown className="ml-2 text-gray-500" />
             </div>
             {showSupplierDropdown && (
@@ -2168,69 +1908,71 @@ const Print = () => {
             <FiSquare /> Deselect All
           </Button>
         </div>
+
+
       </div>
 
       {/* Table */}
-      <div className="border border-gray-300 rounded bg-white shadow-md overflow-hidden mb-4">
+      <div className="border border-gray-300 rounded bg-white shadow-md overflow-hidden overflow-x-scroll w-[93%] m-auto mb-4">
         <table className="w-full text-sm table-auto">
           <thead className="bg-gray-100">
             <tr>
               <MemoizedSortableHeader label="Tag List" columnKey="tagList" />
               <MemoizedSortableHeader label="BC #" columnKey="bc" />
               <MemoizedSortableHeader label="Item Id" columnKey="itemId" />
-              <MemoizedSortableHeader
-                label="Description"
-                columnKey="description"
-              />
-              <MemoizedSortableHeader
-                label="Main Category"
-                columnKey="mainCategory"
-              />
-              <MemoizedSortableHeader
-                label="Sub Category"
-                columnKey="subCategory"
-              />
+              <MemoizedSortableHeader label="Description" columnKey="description" />
+              <MemoizedSortableHeader label="Main Category" columnKey="mainCategory" />
+              <MemoizedSortableHeader label="Sub Category" columnKey="subCategory" />
               <MemoizedSortableHeader label="Store" columnKey="store" />
               <MemoizedSortableHeader label="Supplier" columnKey="supplier" />
             </tr>
           </thead>
           <tbody>
-            {currentItems.map((item, index) => (
-              <tr
-                key={index}
-                className="border-b border-gray-200 hover:bg-gray-50"
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(item.id)}
-                    onChange={() => handleCheckboxChange(item.id)}
-                    className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.bc}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.itemId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.description}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.mainCategory}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.subCategory}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.store}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.supplier}
+            {loading ? (
+              <tr>
+                <td colSpan="8">
+                  <Loader />
                 </td>
               </tr>
-            ))}
+            ) : currentItems.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-8 text-gray-500 font-medium">No data found</td>
+              </tr>
+            ) : (
+              currentItems.map((item, index) => (
+                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => handleCheckboxChange(item.id)}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.bc}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.itemId}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.mainCategory}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.subCategory}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.store}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.supplier}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -2251,9 +1993,7 @@ const Print = () => {
             <option value={100}>100</option>
           </select>
           <span className="text-sm text-gray-600">
-            Showing {indexOfFirstItem + 1} to{" "}
-            {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-            {filteredData.length} entries
+            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
           </span>
         </div>
 
@@ -2263,14 +2003,14 @@ const Print = () => {
             onClick={() => handlePageChange(1)}
             disabled={currentPage === 1}
           >
-            {"<<"}
+            {'<<'}
           </button>
           <button
             className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
-            {"<"}
+            {'<'}
           </button>
 
           {/* Page Numbers */}
@@ -2292,8 +2032,8 @@ const Print = () => {
                   key={pageNumber}
                   className={`px-3 py-1 border rounded text-sm ${
                     currentPage === pageNumber
-                      ? "bg-blue-500 text-white"
-                      : "border-gray-300 hover:bg-gray-100"
+                      ? 'bg-blue-500 text-white'
+                      : 'border-gray-300 hover:bg-gray-100'
                   }`}
                   onClick={() => handlePageChange(pageNumber)}
                 >
@@ -2308,14 +2048,14 @@ const Print = () => {
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
-            {">"}
+            {'>'}
           </button>
           <button
             className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
             onClick={() => handlePageChange(totalPages)}
             disabled={currentPage === totalPages}
           >
-            {">>"}
+            {'>>'}
           </button>
 
           {/* Page Input */}
@@ -2357,12 +2097,13 @@ const Print = () => {
         </div>
         <div className="bg-orange-100 p-2">
           <button
-            onClick={handleOpenPrintSettings}
+          onClick={handleOpenPrintSettings}
             className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300"
           >
             <FiSettings /> Settings
           </button>
         </div>
+
         <Calculate
           isOpen={showCalculator}
           onClose={handleCloseCalculator}
@@ -2370,9 +2111,11 @@ const Print = () => {
         />
       </div>
 
-      <PrintSettingsPopup
-        isOpen={showPrintSettingsPopup}
-        onClose={handleClosePrintSettings}
+      
+
+      <PrintSettingsPopup 
+        isOpen={showPrintSettingsPopup} 
+        onClose={handleClosePrintSettings} 
         onSave={handleSavePrintSettings}
       />
 
@@ -2386,8 +2129,8 @@ const Print = () => {
       {renderDropdown("supplier")}
       {renderDropdown("tagList")}
 
-      {/* Custom Info Modal */}
-      {showInfoModal && (
+
+{showInfoModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-[1000]">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-sm border border-gray-300">
             {/* Header */}
@@ -2410,7 +2153,9 @@ const Print = () => {
           </div>
         </div>
       )}
+      
     </div>
+    
   );
 };
 
