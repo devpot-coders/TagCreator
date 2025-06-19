@@ -1,12 +1,12 @@
 // apiClient.js
 import axios from 'axios';
 // const api_url = process.env.NEXT_PUBLIC_API_BASE_URL
-const api_url = "http://localhost:8000/api/v1/"
+const api_url = "https://retailpos.iconnectgroup.com/Api/"
 
 class ApiClient {
   constructor() {
     this.axiosInstance = axios.create({
-      api_url,
+      baseURL: api_url,
       timeout: 10000, // 10 seconds
       headers: {
         'Content-Type': 'application/json',

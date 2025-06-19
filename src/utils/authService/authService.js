@@ -1,8 +1,7 @@
-import { apiClient } from '../../auth/apiClient';
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from './storageUtils';
+import { apiClient } from "../../auth/apiClient";
+// import { getLocalStorage, setLocalStorage, removeLocalStorage } from './storageUtils';
 
 const AuthService = {
-
   async fetchData(url) {
     try {
       const response = await apiClient.get(url);
@@ -13,10 +12,15 @@ const AuthService = {
   },
 
   // Login with email/password
-  async login(email, password) {
+  async login(ClientCode, Password, UserName) {
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.post(
+        "https://api.iconnectgroup.com/api/AuthToken/GetToken",
+        { ClientCode, Password, UserName }
+      );
       this.setAuthTokens(response.data);
+      console.log(response.data, "login response");
+
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -26,7 +30,7 @@ const AuthService = {
   // Register new user
   async signup(userData) {
     try {
-      const response = await apiClient.post('/auth/register', userData);
+      const response = await apiClient.post("/auth/register", userData);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -36,7 +40,7 @@ const AuthService = {
   // Verify email with token
   async verifyEmail(token) {
     try {
-      const response = await apiClient.post('/auth/verify-email', { token });
+      const response = await apiClient.post("/auth/verify-email", { token });
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -46,7 +50,7 @@ const AuthService = {
   // Send OTP to email/phone
   async sendOTP(identifier) {
     try {
-      const response = await apiClient.post('/auth/send-otp', { identifier });
+      const response = await apiClient.post("/auth/send-otp", { identifier });
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -56,7 +60,10 @@ const AuthService = {
   // Verify OTP
   async verifyOTP(identifier, otp) {
     try {
-      const response = await apiClient.post('/auth/verify-otp', { identifier, otp });
+      const response = await apiClient.post("/auth/verify-otp", {
+        identifier,
+        otp,
+      });
       this.setAuthTokens(response.data);
       return { success: true, data: response.data };
     } catch (error) {
@@ -67,7 +74,7 @@ const AuthService = {
   // Password reset request
   async forgotPassword(email) {
     try {
-      const response = await apiClient.post('/auth/forgot-password', { email });
+      const response = await apiClient.post("/auth/forgot-password", { email });
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -77,7 +84,10 @@ const AuthService = {
   // Reset password with token
   async resetPassword(token, newPassword) {
     try {
-      const response = await apiClient.post('/auth/reset-password', { token, newPassword });
+      const response = await apiClient.post("/auth/reset-password", {
+        token,
+        newPassword,
+      });
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -86,27 +96,27 @@ const AuthService = {
 
   // Set auth tokens in storage
   setAuthTokens(data) {
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', data.user);
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    localStorage.setItem("user", data.user);
   },
 
   // Check if user is authenticated
   isAuthenticated() {
-    return !!getLocalStorage('accessToken');
+    return !!localStorage.getItem("accessToken");
   },
 
   // Get current user
   getCurrentUser() {
-    return getLocalStorage('user');
+    return localStorage.getItem("user");
   },
 
   // Logout
   logout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-  }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  },
 };
 
 export default AuthService;
