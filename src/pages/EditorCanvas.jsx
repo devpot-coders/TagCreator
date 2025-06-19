@@ -100,7 +100,15 @@ function EditorCanvas() {
   const [showGuideline, setShowGuideline] = useState(false);
   const containerRef = useRef(null);
   const [settingsIconPosition, setSettingsIconPosition] = useState(null);
+
   const [showCalculator, setShowCalculator] = useState(false);
+
+  const [strokeColor, setStrokeColor] = useState("#ef4444");
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [showTemplateNameDialog, setShowTemplateNameDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -319,20 +327,6 @@ function EditorCanvas() {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Initialize keyboard shortcuts
-    const handleKeyDown = (e) => {
-      // Don't handle shortcuts if we're editing text
-      if (fabricCanvas.getActiveObject()?.isEditing) {
-        return;
-      }
-
-      // Delete (Delete or Backspace)
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        handleDelete();
-      }
-    };
-
     // Initialize canvas event listeners
     const handleSelectionCreated = (e) => {
       const selectedObject = e.selected?.[0];
@@ -366,14 +360,12 @@ function EditorCanvas() {
     };
 
     // Add event listeners
-    window.addEventListener("keydown", handleKeyDown);
     fabricCanvas.on("selection:created", handleSelectionCreated);
     fabricCanvas.on("selection:updated", handleSelectionUpdated);
     fabricCanvas.on("selection:cleared", handleSelectionCleared);
 
     // Cleanup function
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       fabricCanvas.off("selection:created", handleSelectionCreated);
       fabricCanvas.off("selection:updated", handleSelectionUpdated);
       fabricCanvas.off("selection:cleared", handleSelectionCleared);
@@ -396,9 +388,53 @@ function EditorCanvas() {
 
   const handleCopy = () => {
     if (fabricCanvas && selectedObject) {
-      const objectData = selectedObject.toObject(['type', 'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'fontFamily', 'textAlign', 'text', 'src', 'filters', 'clipPath', 'originX', 'originY', 'selectable', 'hasControls', 'hasBorders', 'transparentCorners', 'cornerColor', 'cornerSize', 'hasRotatingPoint']);
-      setClipboard(objectData);
-      console.log("Object copied:", objectData);
+      // Get the active object and serialize it
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        // For images, we need to ensure we're copying the correct image data
+        if (activeObject.type === 'image') {
+          const imageData = {
+            type: 'image',
+            src: activeObject._element.src,
+            left: activeObject.left,
+            top: activeObject.top,
+            scaleX: activeObject.scaleX,
+            scaleY: activeObject.scaleY,
+            angle: activeObject.angle,
+            width: activeObject.width,
+            height: activeObject.height,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(imageData);
+          console.log("Image copied to clipboard:", imageData);
+        } else if (activeObject.type === 'line') {
+          // Special handling for lines
+          const lineData = {
+            type: 'line',
+            x1: activeObject.x1,
+            y1: activeObject.y1,
+            x2: activeObject.x2,
+            y2: activeObject.y2,
+            stroke: activeObject.stroke,
+            strokeWidth: activeObject.strokeWidth,
+            left: activeObject.left,
+            top: activeObject.top,
+            angle: activeObject.angle,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(lineData);
+          console.log("Line copied to clipboard:", lineData);
+        } else {
+          // For other objects, use the standard toObject method
+          const objectData = activeObject.toObject();
+          setClipboard(objectData);
+          console.log("Object copied to clipboard:", objectData);
+        }
+      }
     }
   };
   
@@ -416,49 +452,244 @@ function EditorCanvas() {
   };
   
   const handlePaste = () => {
-    if (!fabricCanvas || !clipboard) return;
-  
-    // Handle both single object and array of objects
-    const objectsToPaste = Array.isArray(clipboard) ? clipboard : [clipboard];
-  
-    fabric.util.enlivenObjects(objectsToPaste, (pastedObjects) => {
-      if (!pastedObjects || pastedObjects.length === 0) return;
-  
-      // Calculate center of canvas for pasting
-      const center = {
-        left: fabricCanvas.width / 2,
-        top: fabricCanvas.height / 2
-      };
-  
-      // Position and add each pasted object
-      pastedObjects.forEach((obj, index) => {
-        // Offset each object slightly (10px) from the center
-        obj.set({
-          left: center.left + (index * 10),
-          top: center.top + (index * 10),
+    if (!fabricCanvas || !clipboard) {
+      console.log("Cannot paste: No canvas or clipboard data");
+      return;
+    }
+
+    console.log("Attempting to paste:", clipboard);
+    
+    try {
+      let pastedObject;
+      const offset = 20; // pixels to offset the pasted object
+
+      // Convert type to lowercase for case-insensitive comparison
+      const objectType = clipboard.type.toLowerCase();
+
+      // Create new object based on type
+      switch (objectType) {
+        case 'line':
+          // Create a new line with the copied properties
+          pastedObject = new fabric.Line(
+            [clipboard.x1, clipboard.y1, clipboard.x2, clipboard.y2],
+            {
+              stroke: clipboard.stroke || '#000000',
+              strokeWidth: clipboard.strokeWidth || 2,
+              left: (clipboard.left || 0) + offset,
+              top: (clipboard.top || 0) + offset,
+              angle: clipboard.angle || 0,
+              evented: true,
+              selectable: true,
+              hasControls: true,
+              hasBorders: true,
+            }
+          );
+          break;
+
+        case 'image':
+          // For images, we need to load the image first
+          if (!clipboard.src) {
+            console.error("No image source found in clipboard data");
+            return;
+          }
+
+          // Create a new image element
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          
+          img.onload = () => {
+            // Create a new fabric image
+            const fabricImage = new fabric.Image(img, {
+              left: (clipboard.left || 0) + offset,
+              top: (clipboard.top || 0) + offset,
+              scaleX: clipboard.scaleX || 1,
+              scaleY: clipboard.scaleY || 1,
+              angle: clipboard.angle || 0,
+              width: clipboard.width || img.width,
+              height: clipboard.height || img.height,
+              evented: true,
+              selectable: true,
+              hasControls: true,
+              hasBorders: true,
+            });
+
+            // Remove any existing selection
+            fabricCanvas.discardActiveObject();
+            
+            // Add the new image
+            fabricCanvas.add(fabricImage);
+            
+            // Select only the new image
+            fabricCanvas.setActiveObject(fabricImage);
+            fabricCanvas.requestRenderAll();
+            setSelectedObject(fabricImage);
+            console.log("Image pasted successfully");
+          };
+
+          img.onerror = (error) => {
+            console.error("Error loading image:", error);
+          };
+
+          // Set the image source to start loading
+          img.src = clipboard.src;
+          return;
+
+        case 'rect':
+          pastedObject = new fabric.Rect({
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'circle':
+          pastedObject = new fabric.Circle({
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'text':
+          pastedObject = new fabric.Text(clipboard.text, {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'path':
+          pastedObject = new fabric.Path(clipboard.path, {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'polygon':
+          pastedObject = new fabric.Polygon(clipboard.points, {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'polyline':
+          pastedObject = new fabric.Polyline(clipboard.points, {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'triangle':
+          pastedObject = new fabric.Triangle({
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        case 'ellipse':
+          pastedObject = new fabric.Ellipse({
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
           evented: true,
           selectable: true,
           hasControls: true,
           hasBorders: true,
         });
-  
-        fabricCanvas.add(obj);
-      });
-  
-      // Select all pasted objects
-      const activeSelection = new fabric.ActiveSelection(pastedObjects, {
-        canvas: fabricCanvas,
-      });
-      fabricCanvas.setActiveObject(activeSelection);
+          break;
+
+        case 'group':
+          // For groups, we need to recreate all objects in the group
+          const groupObjects = clipboard.objects.map(obj => {
+            const newObj = fabric.util.enlivenObjects([obj], (objects) => {
+              return objects[0];
+            });
+            return newObj;
+          });
+          
+          pastedObject = new fabric.Group(groupObjects, {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+          break;
+
+        default:
+          // For any other type, try to use enlivenObjects as a fallback
+          fabric.util.enlivenObjects([clipboard], (objects) => {
+            if (objects && objects.length > 0) {
+              const obj = objects[0];
+              obj.set({
+                left: (clipboard.left || 0) + offset,
+                top: (clipboard.top || 0) + offset,
+                evented: true,
+                selectable: true,
+                hasControls: true,
+                hasBorders: true,
+              });
+              fabricCanvas.add(obj);
+              fabricCanvas.setActiveObject(obj);
+              fabricCanvas.requestRenderAll();
+              setSelectedObject(obj);
+            }
+          });
+          return;
+      }
+
+      // Add the object to canvas
+      fabricCanvas.add(pastedObject);
+      
+      // Select the pasted object
+      fabricCanvas.setActiveObject(pastedObject);
       fabricCanvas.requestRenderAll();
-      setSelectedObject(activeSelection);
-    }, 'fabric');
+      
+      // Update selected object state
+      setSelectedObject(pastedObject);
+      console.log("Object pasted successfully");
+    } catch (error) {
+      console.error("Error pasting object:", error);
+    }
   };
 
   const handleSave = () => {
     if (fabricCanvas) {
-      const canvasData = fabricCanvas.toJSON(['type', 'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'fontFamily', 'textAlign', 'text', 'src', 'filters', 'clipPath', 'originX', 'originY', 'selectable', 'hasControls', 'hasBorders', 'transparentCorners', 'cornerColor', 'cornerSize', 'hasRotatingPoint']);
-      console.log("Canvas data:", canvasData);
+      setShowTemplateNameDialog(true);
     }
   };
 
@@ -467,16 +698,53 @@ function EditorCanvas() {
   };
 
   const handleClose = () => {
-    // Clear template selection from localStorage
-    localStorage.removeItem('selectedTemplate');
-    localStorage.removeItem('selectedOrientation');
-    // Navigate to home page with full reload
-    window.location.href = '/';
+    // Check if there are any objects on the canvas
+    if (fabricCanvas && fabricCanvas.getObjects().length > 0) {
+      setShowSaveConfirmation(true);
+    } else {
+      // If no objects, just close without confirmation
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleSaveConfirmation = (shouldSave) => {
+    setShowSaveConfirmation(false);
+    if (shouldSave) {
+      setShowTemplateNameDialog(true);
+    } else {
+      // Close without saving
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleTemplateNameSubmit = () => {
+    if (templateName.trim()) {
+      // Save the template with the given name
+      if (fabricCanvas) {
+        const canvasData = fabricCanvas.toJSON(['type', 'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'fontFamily', 'textAlign', 'text', 'src', 'filters', 'clipPath', 'originX', 'originY', 'selectable', 'hasControls', 'hasBorders', 'transparentCorners', 'cornerColor', 'cornerSize', 'hasRotatingPoint']);
+        // Here you would typically save the template data with the name
+        console.log("Saving template:", templateName, canvasData);
+      }
+      // Close the editor
+      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem('selectedOrientation');
+      window.location.href = '/';
+    }
+  };
+
+  const handleTemplateNameCancel = () => {
+    setShowTemplateNameDialog(false);
+    setTemplateName("");
   };
 
   return (
     <>
-      <div>
+      <div className="">
+        
         <div className="flex items-center space-x-12 ms-24 mt-3">
           <div className="flex items-center space-x-5">
             <div className="flex flex-col items-center space-y-1">
@@ -577,10 +845,12 @@ function EditorCanvas() {
             onCanvasSizeChange={setCanvasSize}
             fabricCanvas={fabricCanvas}
             selectedObject={selectedObject}
+            onStrokeColorChange={setStrokeColor}
+            onStrokeWidthChange={setStrokeWidth}
           />
 
           {/* Canvas and Rulers Container */}
-          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[75vh] overflow-y-scroll" ref={containerRef}>
+          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[75vh] overflow-y-auto overflow-x-hidden" ref={containerRef}>
             <HorizontalRuler
               width={canvasSize.width}
               mouseX={mouseX}
@@ -596,7 +866,7 @@ function EditorCanvas() {
                 onRulerMouseMove={(y) => handleRulerMouseMove(y, "y")}
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
-              <div className="flex-1 flex justify-center canvas-container-wrapper ">
+              <div className="flex-1 flex justify-center canvas-container-wrapper">
                 <DesignCanvas
                   activeTool={activeTool}
                   canvasSize={canvasSize}
@@ -604,6 +874,10 @@ function EditorCanvas() {
                   onToolChange={handleToolChange}
                   selectedImage={selectedImage}
                   onCanvasReady={setFabricCanvas}
+                  strokeColor={strokeColor}
+                  strokeWidth={strokeWidth}
+                  clipboard={clipboard}
+                  setClipboard={setClipboard}
                 />
               </div>
             </div>
@@ -613,6 +887,64 @@ function EditorCanvas() {
 
         {/* Right Panel - Properties */}
         {/* <PropertiesPanel selectedObject={selectedObject} /> */}
+
+        {/* Save Confirmation Dialog */}
+        {showSaveConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Do you wish to save the changes made to the template?</h3>
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSaveConfirmation(true)}
+                  className="px-4 py-2"
+                >
+                  Yes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSaveConfirmation(false)}
+                  className="px-4 py-2"
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Template Name Dialog */}
+        {showTemplateNameDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Please enter a name for the new template</h3>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                className="w-full p-2 border rounded mb-4"
+                placeholder="Template name"
+              />
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={handleTemplateNameSubmit}
+                  className="px-4 py-2"
+                  disabled={!templateName.trim()}
+                >
+                  Ok
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleTemplateNameCancel}
+                  className="px-4 py-2"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
      <Calculate
         isOpen={showCalculator}

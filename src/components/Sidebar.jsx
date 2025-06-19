@@ -52,6 +52,7 @@ export const Sidebar = () => {
     "Full Page",
   ];
 
+  
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
     localStorage.setItem('selectedTemplate', template);
@@ -83,7 +84,9 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="w-38 border-r bg-[#F09536] flex flex-col">
+
+    <div className="w-38 border-r bg-[#F09536] flex flex-col sticky top-0 left-0 z-50">
+
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
           {/* Templates Section */}
