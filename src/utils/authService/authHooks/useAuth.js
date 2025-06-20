@@ -28,7 +28,7 @@ export function useAuth() {
     }
   };
 
-  const login = (email, password) => handleAuthAction('login', email, password);
+  const login = (clientCode, username ,password) => handleAuthAction('login', clientCode, username, password);
   const signup = (userData) => handleAuthAction('signup', userData);
   const verifyEmail = (token) => handleAuthAction('verifyEmail', token);
   const sendOTP = (identifier) => handleAuthAction('sendOTP', identifier);
