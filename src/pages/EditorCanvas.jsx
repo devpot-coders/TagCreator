@@ -457,7 +457,7 @@ function EditorCanvas() {
               console.warn('Unknown child type in group:', obj.type, obj);
               return null;
           }
-          
+
         }
         const children = (clipboard.objects || []).map(reconstructFabricObject).filter(obj => obj && typeof obj.toObject === 'function');
         // Debug logs
@@ -668,7 +668,9 @@ function EditorCanvas() {
           });
           return;
     }
+
     setActiveTool("select")
+
     // Add the object to canvas
     fabricCanvas.add(pastedObject);
     
