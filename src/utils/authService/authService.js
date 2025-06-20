@@ -12,7 +12,7 @@ const AuthService = {
   },
 
   // Login with email/password
-  async login(ClientCode, Password, UserName) {
+  async login(ClientCode, UserName, Password) {
     try {
       const response = await apiClient.post(
         "https://api.iconnectgroup.com/api/AuthToken/GetToken",

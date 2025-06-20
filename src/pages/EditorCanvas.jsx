@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ToolsPanel } from "../components/ToolsPanel";
-import { DesignCanvas } from "../components/DesignCanvas";
+import  DesignCanvas  from "../components/DesignCanvas";
 import { HorizontalRuler, VerticalRuler } from "../components/Rulers";
 import { Button } from "../components/ui/button";
+import { Group } from "fabric";
 import * as fabric from 'fabric';
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -388,51 +389,12 @@ function EditorCanvas() {
 
   const handleCopy = () => {
     if (fabricCanvas && selectedObject) {
-      // Get the active object and serialize it
       const activeObject = fabricCanvas.getActiveObject();
       if (activeObject) {
-        // For images, we need to ensure we're copying the correct image data
-        if (activeObject.type === 'image') {
-          const imageData = {
-            type: 'image',
-            src: activeObject._element.src,
-            left: activeObject.left,
-            top: activeObject.top,
-            scaleX: activeObject.scaleX,
-            scaleY: activeObject.scaleY,
-            angle: activeObject.angle,
-            width: activeObject.width,
-            height: activeObject.height,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          };
-          setClipboard(imageData);
-          console.log("Image copied to clipboard:", imageData);
-        } else if (activeObject.type === 'line') {
-          // Special handling for lines
-          const lineData = {
-            type: 'line',
-            x1: activeObject.x1,
-            y1: activeObject.y1,
-            x2: activeObject.x2,
-            y2: activeObject.y2,
-            stroke: activeObject.stroke,
-            strokeWidth: activeObject.strokeWidth,
-            left: activeObject.left,
-            top: activeObject.top,
-            angle: activeObject.angle,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          };
-          setClipboard(lineData);
-          console.log("Line copied to clipboard:", lineData);
+        if (activeObject.type === 'group' || activeObject.type === 'activeSelection') {
+          setClipboard(activeObject.toObject(['objects', 'left', 'top', 'scaleX', 'scaleY', 'angle', 'width', 'height', 'type', 'text', 'fill', 'stroke', 'strokeWidth']));
         } else {
-          // For other objects, use the standard toObject method
-          const objectData = activeObject.toObject();
-          setClipboard(objectData);
-          console.log("Object copied to clipboard:", objectData);
+          setClipboard(activeObject.toObject(['left', 'top', 'scaleX', 'scaleY', 'angle', 'width', 'height', 'type', 'text', 'fill', 'stroke', 'strokeWidth']));
         }
       }
     }
@@ -440,206 +402,215 @@ function EditorCanvas() {
   
   const handleCut = () => {
     if (fabricCanvas && selectedObject) {
-      // Serialize the selected object with all its properties
-      const objectData = selectedObject.toObject(['left', 'top', 'scaleX', 'scaleY', 'angle', 'fill', 'stroke', 'strokeWidth', 'width', 'height', 'radius', 'points', 'path', 'rx', 'ry', 'type']);
-      setClipboard(objectData);
-      
-      // Remove the original object
-      fabricCanvas.remove(selectedObject);
-      fabricCanvas.requestRenderAll();
-      setSelectedObject(null);
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        if (activeObject.type === 'group' || activeObject.type === 'activeSelection') {
+          setClipboard(activeObject.toObject(['objects', 'left', 'top', 'scaleX', 'scaleY', 'angle', 'width', 'height', 'type', 'text', 'fill', 'stroke', 'strokeWidth']));
+        } else {
+          setClipboard(activeObject.toObject(['left', 'top', 'scaleX', 'scaleY', 'angle', 'width', 'height', 'type', 'text', 'fill', 'stroke', 'strokeWidth']));
+        }
+        fabricCanvas.remove(activeObject);
+        fabricCanvas.requestRenderAll();
+        setSelectedObject(null);
+      }
     }
   };
   
-  const handlePaste = () => {
+  const handlePaste = async () => {
     if (!fabricCanvas || !clipboard) {
       console.log("Cannot paste: No canvas or clipboard data");
       return;
     }
-
-    console.log("Attempting to paste:", clipboard);
-    
-    try {
-      let pastedObject;
-      const offset = 20; // pixels to offset the pasted object
-
-      // Convert type to lowercase for case-insensitive comparison
-      const objectType = clipboard.type.toLowerCase();
-
-      // Create new object based on type
-      switch (objectType) {
-        case 'line':
-          // Create a new line with the copied properties
-          pastedObject = new fabric.Line(
-            [clipboard.x1, clipboard.y1, clipboard.x2, clipboard.y2],
-            {
-              stroke: clipboard.stroke || '#000000',
-              strokeWidth: clipboard.strokeWidth || 2,
-              left: (clipboard.left || 0) + offset,
-              top: (clipboard.top || 0) + offset,
-              angle: clipboard.angle || 0,
-              evented: true,
-              selectable: true,
-              hasControls: true,
-              hasBorders: true,
+    let pastedObject;
+    const offset = 20;
+    const objectType = clipboard.type ? clipboard.type.toLowerCase() : null;
+    switch (objectType) {
+      case 'group': {
+        // Manually reconstruct each child object from plain object data, recursively handle nested groups
+        function reconstructFabricObject(obj) {
+          if (!obj || !obj.type) return null;
+          const type = obj.type.toLowerCase();
+          switch (type) {
+            case 'rect': return new fabric.Rect(obj);
+            case 'circle': return new fabric.Circle(obj);
+            case 'ellipse': return new fabric.Ellipse(obj);
+            case 'polygon': return new fabric.Polygon(obj.points, obj);
+            case 'polyline': return new fabric.Polyline(obj.points, obj);
+            case 'triangle': return new fabric.Triangle(obj);
+            case 'line': return new fabric.Line([obj.x1, obj.y1, obj.x2, obj.y2], obj);
+            case 'image': return new fabric.Image(undefined, obj);
+            case 'textbox': {
+              const { text, type, version, ...options } = obj;
+              return new fabric.Textbox(text, options);
             }
-          );
-          break;
-
-        case 'image':
-          // For images, we need to load the image first
-          if (!clipboard.src) {
-            console.error("No image source found in clipboard data");
-            return;
+            case 'text': {
+              const { text, type, version, ...options } = obj;
+              return new fabric.Text(text, options);
+            }
+            case 'path': return new fabric.Path(obj.path, obj);
+            case 'group': {
+              // Recursively reconstruct nested groups
+              const nestedChildren = (obj.objects || []).map(reconstructFabricObject).filter(child => child && typeof child.toObject === 'function');
+              return new fabric.Group(nestedChildren, obj);
+            }
+            default:
+              console.warn('Unknown child type in group:', obj.type, obj);
+              return null;
           }
 
-          // Create a new image element
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          
-          img.onload = () => {
-            // Create a new fabric image
-            const fabricImage = new fabric.Image(img, {
-              left: (clipboard.left || 0) + offset,
-              top: (clipboard.top || 0) + offset,
-              scaleX: clipboard.scaleX || 1,
-              scaleY: clipboard.scaleY || 1,
-              angle: clipboard.angle || 0,
-              width: clipboard.width || img.width,
-              height: clipboard.height || img.height,
-              evented: true,
-              selectable: true,
-              hasControls: true,
-              hasBorders: true,
-            });
-
-            // Remove any existing selection
-            fabricCanvas.discardActiveObject();
-            
-            // Add the new image
-            fabricCanvas.add(fabricImage);
-            
-            // Select only the new image
-            fabricCanvas.setActiveObject(fabricImage);
-            fabricCanvas.requestRenderAll();
-            setSelectedObject(fabricImage);
-            console.log("Image pasted successfully");
-          };
-
-          img.onerror = (error) => {
-            console.error("Error loading image:", error);
-          };
-
-          // Set the image source to start loading
-          img.src = clipboard.src;
+        }
+        const children = (clipboard.objects || []).map(reconstructFabricObject).filter(obj => obj && typeof obj.toObject === 'function');
+        // Debug logs
+        console.log('children:', children);
+        console.log('types:', children.map(obj => obj && obj.type));
+        console.log('are all Fabric objects:', children.every(obj => obj && typeof obj.toObject === 'function'));
+        children.forEach((child, idx) => {
+          if (!child || typeof child.toObject !== 'function') {
+            console.warn(`Child ${idx} is not a valid Fabric object:`, child);
+          }
+        });
+        // Only pass valid group options, not the entire clipboard object
+        const {
+          left, top, scaleX, scaleY, angle, width, height, fill, stroke, strokeWidth,
+          opacity, visible, backgroundColor, skewX, skewY, flipX, flipY, originX, originY
+        } = clipboard;
+        pastedObject = new fabric.Group(children, {
+          left: (left || 0) + offset,
+          top: (top || 0) + offset,
+          scaleX, scaleY, angle, width, height, fill, stroke, strokeWidth,
+          opacity, visible, backgroundColor, skewX, skewY, flipX, flipY, originX, originY,
+          evented: true,
+          fontSize: 15, 
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
+      case 'image':
+        // For images, we need to load the image first
+        if (!clipboard.src) {
+          console.error("No image source found in clipboard data");
           return;
+        }
 
-        case 'rect':
-          pastedObject = new fabric.Rect({
-            ...clipboard,
+        // Create a new image element
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        
+        img.onload = () => {
+          // Create a new fabric image
+          const fabricImage = new fabric.Image(img, {
             left: (clipboard.left || 0) + offset,
             top: (clipboard.top || 0) + offset,
+            scaleX: clipboard.scaleX || 1,
+            scaleY: clipboard.scaleY || 1,
+            angle: clipboard.angle || 0,
+            width: clipboard.width || img.width,
+            height: clipboard.height || img.height,
             evented: true,
             selectable: true,
             hasControls: true,
             hasBorders: true,
           });
-          break;
 
-        case 'circle':
-          pastedObject = new fabric.Circle({
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
+          // Remove any existing selection
+          fabricCanvas.discardActiveObject();
+          
+          // Add the new image
+          fabricCanvas.add(fabricImage);
+          
+          // Select only the new image
+          fabricCanvas.setActiveObject(fabricImage);
+          fabricCanvas.requestRenderAll();
+          setSelectedObject(fabricImage);
+          console.log("Image pasted successfully");
+        };
 
-        case 'text':
-          pastedObject = new fabric.Text(clipboard.text, {
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
+        img.onerror = (error) => {
+          console.error("Error loading image:", error);
+        };
 
-        case 'path':
-          pastedObject = new fabric.Path(clipboard.path, {
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
+        // Set the image source to start loading
+        img.src = clipboard.src;
+        return;
 
-        case 'polygon':
-          pastedObject = new fabric.Polygon(clipboard.points, {
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
-
-        case 'polyline':
-          pastedObject = new fabric.Polyline(clipboard.points, {
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
-
-        case 'triangle':
-          pastedObject = new fabric.Triangle({
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
-            evented: true,
-            selectable: true,
-            hasControls: true,
-            hasBorders: true,
-          });
-          break;
-
-        case 'ellipse':
-          pastedObject = new fabric.Ellipse({
-            ...clipboard,
-            left: (clipboard.left || 0) + offset,
-            top: (clipboard.top || 0) + offset,
+      case 'rect':
+        pastedObject = new fabric.Rect({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
           evented: true,
           selectable: true,
           hasControls: true,
           hasBorders: true,
         });
-          break;
+        break;
 
-        case 'group':
-          // For groups, we need to recreate all objects in the group
-          const groupObjects = clipboard.objects.map(obj => {
-            const newObj = fabric.util.enlivenObjects([obj], (objects) => {
-              return objects[0];
-            });
-            return newObj;
-          });
-          
-          pastedObject = new fabric.Group(groupObjects, {
+      case 'circle':
+        pastedObject = new fabric.Circle({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'text':
+        pastedObject = new fabric.Text(clipboard.text, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'path':
+        pastedObject = new fabric.Path(clipboard.path, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'polygon':
+        pastedObject = new fabric.Polygon(clipboard.points, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'polyline':
+        pastedObject = new fabric.Polyline(clipboard.points, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'line':
+        pastedObject = new fabric.Line(
+          [clipboard.x1, clipboard.y1, clipboard.x2, clipboard.y2],
+          {
             ...clipboard,
             left: (clipboard.left || 0) + offset,
             top: (clipboard.top || 0) + offset,
@@ -647,11 +618,37 @@ function EditorCanvas() {
             selectable: true,
             hasControls: true,
             hasBorders: true,
-          });
-          break;
+          }
+        );
+        break;
+
+      case 'triangle':
+        pastedObject = new fabric.Triangle({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'ellipse':
+        pastedObject = new fabric.Ellipse({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+        evented: true,
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
+      });
+        break;
 
         default:
           // For any other type, try to use enlivenObjects as a fallback
+          console.log("default")
           fabric.util.enlivenObjects([clipboard], (objects) => {
             if (objects && objects.length > 0) {
               const obj = objects[0];
@@ -670,21 +667,20 @@ function EditorCanvas() {
             }
           });
           return;
-      }
-
-      // Add the object to canvas
-      fabricCanvas.add(pastedObject);
-      
-      // Select the pasted object
-      fabricCanvas.setActiveObject(pastedObject);
-      fabricCanvas.requestRenderAll();
-      
-      // Update selected object state
-      setSelectedObject(pastedObject);
-      console.log("Object pasted successfully");
-    } catch (error) {
-      console.error("Error pasting object:", error);
     }
+
+    setActiveTool("select")
+
+    // Add the object to canvas
+    fabricCanvas.add(pastedObject);
+    
+    // Select the pasted object
+    fabricCanvas.setActiveObject(pastedObject);
+    fabricCanvas.requestRenderAll();
+    
+    // Update selected object state
+    setSelectedObject(pastedObject);
+    console.log("Object pasted successfully");
   };
 
   const handleSave = () => {

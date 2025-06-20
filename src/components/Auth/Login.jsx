@@ -42,6 +42,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("ClientCode",formData.ClientCode)
+    console.log("Username",formData.UserName)
+    console.log("Password",formData.Password)
     try {
       setErrors({});
       await LoginValidation.validate(formData, { abortEarly: false });
