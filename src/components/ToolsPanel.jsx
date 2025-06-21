@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export const ToolsPanel = ({ 
   activeTool, 
@@ -486,40 +487,47 @@ export const ToolsPanel = ({
           {tools.map((tool) => (
             tool.id === "field" || tool.id === "point" ? (
               <DropdownMenu key={tool.id}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    size="md"
-                    className={`flex items-center space-x-1 rounded-full ${tool.id === "point" ? "p-1" : "p-3"}`}
-                  >
-                    {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
-                  </Button>
-                </DropdownMenuTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        size="md"
+                        className={`flex items-center space-x-1 rounded-full ${tool.id === "point" ? "p-1" : "p-3"}`}
+                      >
+                        {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{tool.label}</TooltipContent>
+                </Tooltip>
                 {tool.dropdown}
               </DropdownMenu>
             ) : (
-             <>
-              <Button
-                key={tool.id}
-                variant={activeTool === tool.id ? "default" : "outline"}
-                size="md"
-                onClick={() => {
-                  if (tool.id === "image") {
-                    handleImageClick();
-                  } else if (tool.id === "stroke") {
-                    onToolChange(tool.id, strokeColor);
-                  } else if (tool.id === "fill") {
-                    onToolChange(tool.id, fillColor);
-                  } else {
-                    onToolChange(tool.id);
-                  }
-                }}
-                className={`flex items-center space-x-1 rounded-full ${tool.id === "stroke" || tool.id === "fill" ? "!bg-transparent" : "p-3"}`}
-              >
-                {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
-              </Button>
-               {tool.id === "stroke" || tool.id === "fill" ? <h1 className="-mt-2 text-xs font-semibold">{tool.id}</h1> : null}
-             </>
+              <Tooltip key={tool.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTool === tool.id ? "default" : "outline"}
+                    size="md"
+                    onClick={() => {
+                      if (tool.id === "image") {
+                        handleImageClick();
+                      } else if (tool.id === "stroke") {
+                        onToolChange(tool.id, strokeColor);
+                      } else if (tool.id === "fill") {
+                        onToolChange(tool.id, fillColor);
+                      } else {
+                        onToolChange(tool.id);
+                      }
+                    }}
+                    className={`flex items-center space-x-1 rounded-full ${tool.id === "stroke" || tool.id === "fill" ? "!bg-transparent" : "p-3"}`}
+                  >
+                    {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">{tool.label}</TooltipContent>
+                {tool.id === "stroke" || tool.id === "fill" ? <h1 className="-mt-2 text-xs font-semibold">{tool.id}</h1> : null}
+              </Tooltip>
             )
           ))}
           

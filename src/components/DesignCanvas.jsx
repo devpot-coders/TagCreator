@@ -1390,6 +1390,74 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
     };
   }, [fabricCanvas]);
 
+  // Add this useEffect to handle field insertion
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const fieldNames = [
+      "date", "id", "itemId", "modelNumber", "descriptionA", "descriptionB",
+      "supplierName", "itemType", "mainCategory", "subCategory", "landedCost",
+      "price1", "price2", "price3", "statusType", "qty", "imageUrl", "dimensions",
+      "packageId", "packageItems", "pay36m", "pay48m", "pay60m", "packageName",
+      "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3",
+      "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m",
+      "packageDimensions", "locBcl", "notes", "location", "stockId"
+    ];
+
+    if (fieldNames.includes(activeTool)) {
+      if (activeTool.startsWith("price")) {
+        // Create $ and {price_x} as separate text objects
+        const dollar = new fabric.Text("$", {
+          left: 0,
+          top: 0,
+          fontSize: 36,
+          fill: "#0090e9",
+          fontWeight: "bold",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        const price = new fabric.Text(`{${activeTool}}`, {
+          left: 40, // a bit to the right of the dollar
+          top: 0,
+          fontSize: 36,
+          fill: "#0090e9",
+          fontWeight: "bold",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        // Group them together
+        const group = new fabric.Group([dollar, price], {
+          left: 100,
+          top: 100,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        fabricCanvas.add(group);
+        fabricCanvas.setActiveObject(group);
+        fabricCanvas.requestRenderAll();
+      } else {
+        // Non-price fields: just add the field as before
+        const text = new fabric.Text(`{${activeTool}}`, {
+          left: 100,
+          top: 100,
+          fontSize: 18,
+          fill: "#000",
+          fontWeight: "normal",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        fabricCanvas.add(text);
+        fabricCanvas.setActiveObject(text);
+        fabricCanvas.requestRenderAll();
+      }
+      onToolChange("select");
+    }
+  }, [activeTool, fabricCanvas, onToolChange]);
+
   return (
     <div className="flex h-full w-full">
       <div
