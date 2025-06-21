@@ -628,7 +628,7 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 }
 };
 
-export const DesignCanvas = ({
+ const DesignCanvas = ({
   activeTool,
   canvasSize,
   onObjectSelect,
@@ -853,11 +853,6 @@ export const DesignCanvas = ({
 
   useEffect(() => {
     if (!fabricCanvas || !selectedImage || activeTool !== "image") {
-      console.log('Image effect conditions not met:', {
-        hasCanvas: !!fabricCanvas,
-        hasImage: !!selectedImage,
-        activeTool
-      });
       return;
     }
   
@@ -989,6 +984,7 @@ export const DesignCanvas = ({
         fill: 'rgba(0, 0, 0, 0.1)',
         stroke: '#000',
         strokeWidth: 1,
+        fontSize: 12,
         selectable: false,
         evented: false
       });
@@ -1021,170 +1017,68 @@ export const DesignCanvas = ({
     };
 
     const handleMouseUp = () => {
+      onToolChange("select");
       if (!isSelecting || !selectionRect) return;
       isSelecting = false;
 
       // Get the actual dimensions from the selection rectangle
-      const width = Math.max(selectionRect.width, 100); // Minimum width of 100px
-      const height = Math.max(selectionRect.height, 50); // Minimum height of 50px
+      const width = Math.max(selectionRect.width, 10); // Minimum width of 10px
+      const height = Math.max(selectionRect.height, 10); // Minimum height of 10px
       const left = selectionRect.left;
       const top = selectionRect.top;
 
-      console.log('Mouse Up - Final Selection Dimensions:', {
-        originalWidth: selectionRect.width,
-        originalHeight: selectionRect.height,
-        finalWidth: width,
-        finalHeight: height,
-        left,
-        top
-      });
-
       fabricCanvas.remove(selectionRect);
 
-      // Create textbox with the exact selection dimensions
-      const textbox = new fabric.Textbox("", {
+      // Create a rectangle with the exact selection dimensions
+      const rect = new fabric.Rect({
         left,
         top,
         width,
         height,
-        fontSize: 16,
-        fill: "#000",
+        fontSize: 15, // Always start at 12
+        fill: "white",
         fontFamily: "Arial",
-        backgroundColor: "transparent",
-        textAlign: "center",
-        editable: true,
+        textAlign: 'left',
+        originX: 'left',
+        originY: 'top',
         selectable: true,
+        editable: true,
+        splitByGrapheme: true,
         transparentCorners: false,
         cornerColor: "#000",
         cornerSize: 10,
         hasRotatingPoint: true,
-        splitByGrapheme: true,
-        originX: "left",
-        originY: "top",
         lockScalingX: false,
         lockScalingY: false,
         lockUniScaling: false,
-        lockMovementX: false,
-        lockMovementY: false,
-        lockRotation: false,
-        centeredScaling: false,
-        centeredRotation: true,
-        fontSize: 16,
-        lineHeight: 1,
-        charSpacing: 0,
-        textAlign: "center",
-        overflowY:"scroll",
-        breakWords: true,
-        wordWrap: true,
-        wordWrapWidth: width,
-        fixedHeight: height, // Force fixed height
-        minHeight: height, // Set minimum height
-        maxHeight: height,  // Set maximum height
-        
+        backgroundColor: 'transparent',
+        stroke: 'transparent',
+        strokeWidth: 0,
       });
 
-
-      // Force the height after creation and maintain it during typing
-      textbox.set({
-        height: height
-      });
-
-      // Handle text changes to maintain height
-      textbox.on("changed", () => {
-        textbox.set({
-          height: height,
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      // Handle scaling to maintain text visibility and height
-      textbox.on("scaling", () => {
-        const newWidth = Math.max(textbox.width * textbox.scaleX, 100);
-        
-        console.log('Scaling - New Dimensions:', {
-          originalWidth: textbox.width,
-          originalHeight: textbox.height,
-          scaleX: textbox.scaleX,
-          scaleY: textbox.scaleY,
-          newWidth,
-          fixedHeight: height
-        });
-
-        textbox.set({
-          width: newWidth,
-          height: height, // Always maintain the original height
-          scaleX: 1,
-          scaleY: 1,
-          fontSize: 16,
-          fixedHeight: height, // Re-enforce fixed height
-          minHeight: height,   // Re-enforce minimum height
-          maxHeight: height,    // Re-enforce maximum height
-        
-        });
-
-        fabricCanvas.requestRenderAll();
-      });
-
-      // Add event listeners for editing state
-      textbox.on("editing:entered", () => {
-        textbox.set({ 
-          backgroundColor: "white",
-          height: height, // Maintain height when entering edit mode
-         
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      textbox.on("editing:exited", () => {
-        textbox.set({ 
-          backgroundColor: "transparent",
-          height: height // Maintain height when exiting edit mode
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      // Add a handler for after scaling is complete
-      textbox.on("scaled", () => {
-        textbox.set({
-          height: height,
-          fixedHeight: height,
-          minHeight: height,
-          maxHeight: height
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      // Add a handler for when modification starts
-      textbox.on("mousedown", () => {
-        textbox.set({
-          height: height,
-          fixedHeight: height,
-          minHeight: height,
-          maxHeight: height
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      // Add a handler for when modification ends
-      textbox.on("modified", () => {
-        textbox.set({
-          height: height,
-          fixedHeight: height,
-          minHeight: height,
-          maxHeight: height,
-          
-        });
-        fabricCanvas.requestRenderAll();
-      });
-
-      fabricCanvas.add(textbox);
-      fabricCanvas.setActiveObject(textbox);
-
-      onToolChange("select");
-      textbox.enterEditing();
-      textbox.hiddenTextarea?.focus();
-
+      fabricCanvas.add(rect);
+      fabricCanvas.setActiveObject(rect);
       fabricCanvas.requestRenderAll();
+
+      // Change fill on selection/deselection
+      rect.on("selected", () => {
+        rect.set({ fill: "white" });
+        fabricCanvas.requestRenderAll();
+      });
+      rect.on("deselected", () => {
+        rect.set({ fill: "transparent" });
+        fabricCanvas.requestRenderAll();
+      });
+      // Enter editing mode for the textbox
+      rect.enterEditing();
+      setTimeout(() => {
+        if (rect.hiddenTextarea) {
+          rect.hiddenTextarea.style.overflowY = 'scroll';
+          rect.hiddenTextarea.style.height = `${rect.height}px`;
+        }
+      }, 0);
+      
+
     };
 
     fabricCanvas.on("mouse:down", handleMouseDown);
@@ -1384,6 +1278,11 @@ export const DesignCanvas = ({
       const activeObject = fabricCanvas.getActiveObject();
       if (!activeObject) return;
 
+      // Prevent textbox addition on images
+      if (activeObject.type === 'image') {
+        return;
+      }
+
       // Check if the object is a group and has text
       if (activeObject.type === 'group') {
         const textObject = activeObject.getObjects().find(obj => obj.type === 'textbox');
@@ -1402,7 +1301,7 @@ export const DesignCanvas = ({
 
       // If no text exists, create new textbox
       const textbox = new Textbox("", {
-        fontSize: Math.min(objRect.width, objRect.height) / 4, // Use objRect for font size
+        fontSize: 15, // Always start at 12
         fill: "#000000",
         fontFamily: "Arial",
         textAlign: 'center',
@@ -1413,6 +1312,7 @@ export const DesignCanvas = ({
         splitByGrapheme: true,
         width: objRect.width, // Full width of the bounding box
         height: objRect.height, // Full height of the bounding box
+        maxHeight: objRect.height, // Set maxHeight to bounding box
         left: centerX, // Centered X
         top: centerY, // Centered Y
         transparentCorners: false,
@@ -1420,14 +1320,16 @@ export const DesignCanvas = ({
         cornerSize: 10,
         hasRotatingPoint: true,
         lockScalingX: true,
-        lockScalingY: true,
+        lockScalingY: true, // Prevent vertical scaling
         lockUniScaling: true,
         backgroundColor: 'transparent',
         stroke: 'transparent',
-        strokeWidth: 0
+        strokeWidth: 0,
       });
 
       // Create a group with the original object and the text
+      // console.log("activeObject" , activeObject)
+      // console.log("textbox" , textbox)
       const group = new Group([activeObject, textbox], {
         left: activeObject.left,
         top: activeObject.top,
@@ -1435,18 +1337,23 @@ export const DesignCanvas = ({
         transparentCorners: false,
         cornerColor: "#000000",
         cornerSize: 10,
-        hasRotatingPoint: true
+        hasRotatingPoint: true,
+        overflowY : "scroll",
+        overflow : "hidden"
       });
-
+      console.log("group", group)
       // Add custom scaling behavior
       group.on('scaling', function(e) {
         const scaleX = this.scaleX;
         const scaleY = this.scaleY;
-        
+        const width = this.width
+        const height = this.height
         // Reset text scaling to maintain original size
         textbox.set({
           scaleX: 1 / scaleX,
-          scaleY: 1 / scaleY
+          scaleY: 1 / scaleY,
+          width : width * scaleX,
+          height : height * scaleY
         });
       });
 
@@ -1457,7 +1364,21 @@ export const DesignCanvas = ({
 
       // Enter editing mode for the text
       textbox.enterEditing();
-      textbox.hiddenTextarea.focus();
+      setTimeout(() => {
+        if (textbox.hiddenTextarea) {
+          textbox.hiddenTextarea.style.overflowY = 'hidden';
+          textbox.hiddenTextarea.style.height = `${textbox.height}px`;
+          textbox.hiddenTextarea.style.maxHeight = `${textbox.height}px`;
+        }
+      }, 0);
+      // Keep textarea scrollable on text change
+      textbox.on("changed", () => {
+        if (textbox.hiddenTextarea) {
+          textbox.hiddenTextarea.style.overflowY = 'hidden';
+          textbox.hiddenTextarea.style.height = `${textbox.height}px`;
+          textbox.hiddenTextarea.style.maxHeight = `${textbox.height}px`;
+        }
+      });
 
       fabricCanvas.requestRenderAll();
     };
@@ -1468,6 +1389,74 @@ export const DesignCanvas = ({
       fabricCanvas.off("mouse:dblclick", handleDoubleClick);
     };
   }, [fabricCanvas]);
+
+  // Add this useEffect to handle field insertion
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const fieldNames = [
+      "date", "id", "itemId", "modelNumber", "descriptionA", "descriptionB",
+      "supplierName", "itemType", "mainCategory", "subCategory", "landedCost",
+      "price1", "price2", "price3", "statusType", "qty", "imageUrl", "dimensions",
+      "packageId", "packageItems", "pay36m", "pay48m", "pay60m", "packageName",
+      "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3",
+      "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m",
+      "packageDimensions", "locBcl", "notes", "location", "stockId"
+    ];
+
+    if (fieldNames.includes(activeTool)) {
+      if (activeTool.startsWith("price")) {
+        // Create $ and {price_x} as separate text objects
+        const dollar = new fabric.Text("$", {
+          left: 0,
+          top: 0,
+          fontSize: 36,
+          fill: "#0090e9",
+          fontWeight: "bold",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        const price = new fabric.Text(`{${activeTool}}`, {
+          left: 40, // a bit to the right of the dollar
+          top: 0,
+          fontSize: 36,
+          fill: "#0090e9",
+          fontWeight: "bold",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        // Group them together
+        const group = new fabric.Group([dollar, price], {
+          left: 100,
+          top: 100,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        fabricCanvas.add(group);
+        fabricCanvas.setActiveObject(group);
+        fabricCanvas.requestRenderAll();
+      } else {
+        // Non-price fields: just add the field as before
+        const text = new fabric.Text(`{${activeTool}}`, {
+          left: 100,
+          top: 100,
+          fontSize: 18,
+          fill: "#000",
+          fontWeight: "normal",
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        fabricCanvas.add(text);
+        fabricCanvas.setActiveObject(text);
+        fabricCanvas.requestRenderAll();
+      }
+      onToolChange("select");
+    }
+  }, [activeTool, fabricCanvas, onToolChange]);
 
   return (
     <div className="flex h-full w-full">
@@ -1508,7 +1497,7 @@ export const DesignCanvas = ({
                 top: settingsIconPosition.top,
               });
             }}
-            className="absolute z-50 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 shadow-lg transition-colors"
+            className="absolute z-50 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 shadow-lg transition-colors "
             style={{
               left: `${settingsIconPosition.left}px`,
               top: `${settingsIconPosition.top}px`,
@@ -1551,5 +1540,7 @@ export const DesignCanvas = ({
     </div>
   );
 };
+
+export default DesignCanvas;
 
 
