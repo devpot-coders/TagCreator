@@ -12,20 +12,20 @@ const AuthService = {
   },
 
   // Login with email/password
-  async login(ClientCode, UserName, Password) {
-    try {
-      const response = await apiClient.post(
-        "https://api.iconnectgroup.com/api/AuthToken/GetToken",
-        { ClientCode, Password, UserName }
-      );
-      this.setAuthTokens(response.data);
-      console.log(response.data, "login response");
+async login(ClientCode, UserName, Password) {
+  try {
+    const response = await apiClient.post(
+      "https://api.iconnectgroup.com/api/AuthToken/GetToken",
+      { ClientCode, UserName, Password }
+    );
+    localStorage.setItem("token", response.data.data);
+    this.setAuthTokens(response.data.data);
 
-      return { success: true, data: response.data };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
+    return { success: true, status: response.status, data: response.data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+},
 
   // Register new user
   async signup(userData) {
