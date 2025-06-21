@@ -31,67 +31,6 @@ import axios from "axios";
 import { Loader } from "../pages/Loader";
 import { useTag } from "../utils/TagService/TagHooks/useTag";
 
-// const tagData = [
-//   {
-//     title: "vv",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "15-07-2025",
-//     dateModified: "15-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "ss",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "12-07-2025",
-//     dateModified: "12-07-2025",
-//     modifiedBy: "user",
-//   },
-//   {
-//     title: "sssss",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "09-07-2025",
-//     dateModified: "09-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "eeeeeee",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "08-07-2025",
-//     dateModified: "08-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "aaaa",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "07-07-2025",
-//     dateModified: "07-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "sss",
-//     createdBy: "aman",
-//     dateCreated: "09-07-2025",
-//     dateModified: "09-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "user",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "08-07-2025",
-//     dateModified: "08-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   {
-//     title: "demo",
-//     createdBy: "Amitesh Sinha",
-//     dateCreated: "07-07-2025",
-//     dateModified: "07-07-2025",
-//     modifiedBy: "Admin",
-//   },
-//   // Add more data as per your list...
-// ];
-
-// Reusable FilterDropdown Component
 const FilterDropdown = ({
   isOpen,
   onClose,
@@ -363,6 +302,7 @@ function List() {
   const [tagData, setTagData] = useState([])
   const [tagList, setTagList] = useState(tagData);
   const [filteredTagList, setFilteredTagList] = useState(tagData);
+  const [company_code,setCompany_code] = useState("afhstXDev")
 
   const [loading, setLoading] = useState(true);
 
@@ -420,7 +360,7 @@ function List() {
       alert('No item selected for delete!');
       return;
     }
-    await deleteTag(tagListDeleteId);
+    await deleteTag(company_code,tagListDeleteId);
     setShowDeleteConfirm(false);
     setTagListDeleteId(null);
   };

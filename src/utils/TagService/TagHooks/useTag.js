@@ -24,7 +24,7 @@ export function useTag(company_code = 'afhstX') {
   };
 
   const fetchTagList = () => handleTagAction('fetchList', company_code);
-  const deleteTag = (id) => handleTagAction('deleteTagData', id, company_code);
+  const deleteTag = (company_code,tagListDeleteId) => handleTagAction('deleteTagData', company_code,tagListDeleteId);
   const fetchCategories = () => handleTagAction('fetchCategory', company_code);
   const fetchPrintItems = () => handleTagAction('fetchPrintList', company_code);
 
