@@ -11,6 +11,7 @@ import StoreTags from "./pages/StoreTags";
 import Login from "./components/Auth/Login";
 import Print from "./pages/Print";
 import EditorCanvas from "./pages/EditorCanvas";
+import ProtectedRoute from "./utils/common/ProtectedRoutes";
 
 const queryClient = new QueryClient();
 
@@ -22,10 +23,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />}>
-            <Route path="/editorCanvas" element={<EditorCanvas />} />
-            <Route index path="/" element={<List />} />
-            <Route path="/storetags" element={<StoreTags />} />
-            <Route path="/print" element={<Print />} />
+            <Route path="/editorCanvas" element={<ProtectedRoute><EditorCanvas /></ProtectedRoute>} />
+            <Route index path="/" element={<ProtectedRoute><List /></ProtectedRoute>} />
+            <Route path="/storetags" element={<ProtectedRoute><StoreTags /></ProtectedRoute>} />
+            <Route path="/print" element={<ProtectedRoute><Print /></ProtectedRoute>} />
 
           </Route>
             <Route path="/login" element={<Login />} />

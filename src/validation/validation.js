@@ -1,7 +1,7 @@
 import * as yup from "yup";
 
 export const LoginValidation = yup.object().shape({
-  ClientCode: yup.string().required("Company code is required"),
+  ClientCode: yup.string().required("Client code is required"),
   UserName: yup.string().required("Username is required"),
   Password: yup
     .string()
