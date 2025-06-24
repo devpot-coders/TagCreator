@@ -363,7 +363,7 @@ function List() {
   const [tagData, setTagData] = useState([])
   const [tagList, setTagList] = useState(tagData);
   const [filteredTagList, setFilteredTagList] = useState(tagData);
-
+  const [ deleted, setDeleted ] = useState("")
   const [loading, setLoading] = useState(true);
 
   const [tagListDeleteId, setTagListDeleteId] = useState("")
@@ -400,7 +400,7 @@ function List() {
       }
     };
     loadTags();
-  }, []);
+  }, [deleted]);
 
   const navigate = useNavigate();
 
@@ -420,7 +420,8 @@ function List() {
       alert('No item selected for delete!');
       return;
     }
-    await deleteTag(tagListDeleteId);
+   const response = await deleteTag(tagListDeleteId);
+   setDeleted(response)
     setShowDeleteConfirm(false);
     setTagListDeleteId(null);
   };
@@ -1096,7 +1097,7 @@ function List() {
       return <FilterDropdown {...props} />;
     };
 
-    return createPortal(dropdownContent(), document.body);
+    return createPortal(dropdownContent(), document.body, `filter-dropdown-portal-${columnKey}`);
   };
 
   return (
@@ -1169,7 +1170,10 @@ function List() {
                   <TableCell>{tag.modifiedBy}</TableCell>
 
                   <TableCell>
-                    <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition">
+                    <Button 
+                      className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition"
+                      onClick={() => navigate("/editorCanvas", { state: { id: tag.id } })}
+                    >
                       <FiEdit className="text-sm" />
                       Edit
                     </Button>
@@ -1183,7 +1187,7 @@ function List() {
                   </TableCell>
 
                   <TableCell>
-                    <Button onClick={() => navigate("/print", { state: { tagTile: tag.title } })} className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
+                    <Button onClick={() => navigate("/print", { state: { template: tag } })} className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
                       <FiPrinter className="text-sm" />
                       Print
                     </Button>

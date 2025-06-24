@@ -14,7 +14,7 @@ const TagService = {
   // Delete tag by ID and company_code
   async deleteTagData(id, company_code) {
     try {
-      const response = await apiClient.delete(`tags/delete.php?company_code=${company_code}&id=${id}`);
+      const response = await apiClient.post(`tags/delete.php`, {"company_code" : company_code, "id" : `${id}`});
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -36,6 +36,16 @@ const TagService = {
   async fetchCategory(company_code) {
     try {
       const response = await apiClient.get(`category/list.php?company_code=${company_code}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Fetch tag/template by ID and company_code
+  async fetchTagById(id, company_code) {
+    try {
+      const response = await apiClient.get(`tags/list.php?company_code=${company_code}&id=${id}`);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
