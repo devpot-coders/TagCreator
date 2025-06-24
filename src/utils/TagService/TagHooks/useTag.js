@@ -24,7 +24,10 @@ export function useTag(company_code = 'afhstXDev') {
   };
 
   const fetchTagList = () => handleTagAction('fetchList', company_code);
+
   const deleteTag = (id) => handleTagAction('deleteTagData', String(id), String(company_code));
+
+
   const fetchCategories = () => handleTagAction('fetchCategory', company_code);
   const fetchPrintItems = () => handleTagAction('fetchPrintList', company_code);
   const fetchTagById = (id) => handleTagAction('fetchTagById', id, company_code);

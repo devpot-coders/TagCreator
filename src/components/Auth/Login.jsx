@@ -7,8 +7,11 @@ import { LoginValidation } from "../../validation/validation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useAuth } from "../../utils/authService/authHooks/useAuth";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const Login = () => {
+  const navigate = useNavigate();
 
   const { login, loading, error } = useAuth();
 
@@ -42,24 +45,36 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("ClientCode",formData.ClientCode)
-    console.log("Username",formData.UserName)
-    console.log("Password",formData.Password)
+
+    setErrors({});
+
+
     try {
-      setErrors({});
       await LoginValidation.validate(formData, { abortEarly: false });
 
-      await login(formData.ClientCode, formData.UserName, formData.Password);
-      
+      const result = await login(
+        formData.ClientCode,
+        formData.UserName,
+        formData.Password
+      );
+
+      console.log("login result:", result);
+
+      if (result.success === true) {
+        navigate("/");
+      } else {
+        setErrors({ general: result.error || "Login failed" });
+      }
     } catch (err) {
       if (err.name === "ValidationError") {
-        const formattedErrors = {};
+        const errs = {};
         err.inner.forEach((e) => {
-          formattedErrors[e.path] = e.message;
+          errs[e.path] = e.message;
         });
-        setErrors(formattedErrors);
+        setErrors(errs);
       } else {
         console.error("Unexpected error:", err);
+        setErrors({ general: "Something went wrong. Please try again." });
       }
     }
   };
@@ -89,7 +104,7 @@ const Login = () => {
                 className="sm:w-32 w-full text-gray-700 font-semibold sm:mb-0"
                 htmlFor="ClientCode"
               >
-                Company Code
+                Client Code
               </Label>
               <div className="flex-1 mt-2 xl:mt-0">
                 <Input
@@ -165,10 +180,18 @@ const Login = () => {
           <div className="xl:flex xl:justify-end flex flex-col sm:flex-row items-center xl:mt-6">
             <Button
               type="submit"
-              className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 xl:px-6 px-8 rounded shadow mb-4 sm:mb-0 sm:mr-4 transition duration-200"
+              disabled={loading}
+              className="relative flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-8 rounded shadow transition duration-200 w-full sm:w-auto"
             >
-              Login
+              <span className={loading ? "invisible" : ""}>Login</span>
+
+              {loading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CircularProgress size={20} color="inherit" />
+                </div>
+              )}
             </Button>
+
             <Button
               type="button"
               className="w-full sm:w-auto bg-gray-100 text-gray-500 font-semibold py-2 xl:px-2 px-4 rounded cursor-not-allowed"

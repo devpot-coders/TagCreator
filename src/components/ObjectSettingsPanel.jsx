@@ -612,6 +612,7 @@ const ObjectSettingsPanel = ({
         });
         break;
 
+
         default:
           // For any other type, try to use enlivenObjects as a fallback
           console.log("default")

@@ -2118,6 +2118,7 @@ const DesignCanvas = ({
       "packageId", "packageItems", "pay36m", "pay48m", "pay60m", "packageName",
       "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3",
       "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m",
+
       "packageDimensions", "locBcl", "notes", "location", "stockId",
       "barcode", "inventory_stock_ids"
     ];
@@ -2189,12 +2190,14 @@ const DesignCanvas = ({
         const dollar = new fabric.Textbox("$", {
           left: 100,
           top: 100,
+
           fontSize: 36,
           fill: "#0090e9",
           fontWeight: "bold",
           selectable: true,
           hasControls: true,
           hasBorders: true,
+
           editable: false,
           evented: true,
         });
@@ -2202,12 +2205,14 @@ const DesignCanvas = ({
         const price = new fabric.Textbox(`{${activeTool}}`, {
           left: 140, // 40px to the right of the dollar
           top: 100,
+
           fontSize: 36,
           fill: "#0090e9",
           fontWeight: "bold",
           selectable: true,
           hasControls: true,
           hasBorders: true,
+
           editable: true,
         });
         dollar.insertedByFieldTool = true;
@@ -2220,6 +2225,7 @@ const DesignCanvas = ({
       } else {
         // Non-price fields: just add the field as an editable textbox
         const text = new fabric.Textbox(`{${activeTool}}`, {
+
           left: 100,
           top: 100,
           fontSize: 18,
@@ -2228,15 +2234,18 @@ const DesignCanvas = ({
           selectable: true,
           hasControls: true,
           hasBorders: true,
+
           editable: true,
         });
         text.insertedByFieldTool = true;
+
         fabricCanvas.add(text);
         fabricCanvas.setActiveObject(text);
         fabricCanvas.requestRenderAll();
       }
       onToolChange("select");
     }
+
 
     if (activeTool === 'qrcode') {
       console.log('QR code tool activated. Generating QR code...');
@@ -2322,6 +2331,7 @@ const DesignCanvas = ({
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex h-full w-full flex-col">
