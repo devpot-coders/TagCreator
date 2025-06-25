@@ -42,13 +42,14 @@ const ObjectSettingsPanel = ({
   selectedObject,
   position,
   onClose,
+  clipboard,
+  setClipboard,
 }) => {
   const [activeMainTab, setActiveMainTab] = useState("Home");
   const [activeSubTab, setActiveSubTab] = useState("General");
   const [activeColorSubTab, setActiveColorSubTab] = useState("Color");
   const [activeSubSubTab, setActiveSubSubTab] = useState("Colors");
   const panelRef = useRef(null);
-  const [clipboard, setClipboard] = useState(null);
   const [objectWidth, setObjectWidth] = useState(0);
   const [objectHeight, setObjectHeight] = useState(0);
   const [objectX, setObjectX] = useState(0);
@@ -59,11 +60,12 @@ const ObjectSettingsPanel = ({
   const [strokeWidth, setStrokeWidth] = useState(1);
   const [strokeDashArray, setStrokeDashArray] = useState([]);
   const [textValue, setTextValue] = useState('');
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
   const [fontFamily, setFontFamily] = useState('Arial');
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [textAlign, setTextAlign] = useState('left');
+  const [textColor, setTextColor] = useState('#000000');
   const [gradients] = useState([
     {
       name: 'Blood Orange',
@@ -132,6 +134,17 @@ const ObjectSettingsPanel = ({
   ]);
   const [showBorderDropdown, setShowBorderDropdown] = useState(false);
 
+  const panelWidth = 384; // Corresponds to w-96
+  const panelHeight = 450; // Corresponds to h-[450px]
+
+  // Calculate effective left and top to keep the panel within the canvas boundaries
+  const effectiveLeft = Math.min(position.left, fabricCanvas ? fabricCanvas.getWidth() - panelWidth : window.innerWidth - panelWidth);
+  const effectiveTop = Math.min(position.top, fabricCanvas ? fabricCanvas.getHeight() - panelHeight : window.innerHeight - panelHeight);
+
+  // Ensure left and top are not negative
+  const finalLeft = Math.max(0, effectiveLeft);
+  const finalTop = Math.max(0, effectiveTop);
+
   useEffect(() => {
     console.log("Selected object updated in ObjectSettingsPanel:", selectedObject);
     if (selectedObject) {
@@ -140,17 +153,44 @@ const ObjectSettingsPanel = ({
       setObjectX(selectedObject.left.toFixed(1));
       setObjectY(selectedObject.top.toFixed(1));
       setObjectRotation(selectedObject.angle.toFixed(1));
-      setStrokeColor(selectedObject.stroke || '#000000');
-      setOpacity(selectedObject.opacity || 1);
-      setStrokeWidth(selectedObject.strokeWidth || 1);
-      setStrokeDashArray(selectedObject.strokeDashArray || []);
-      if (selectedObject.type === 'text' || selectedObject.type === 'i-text') {
+
+      let targetObjectForStyle = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObjectForStyle = selectedObject.getObjects()[0]; // Get the first object (the shape)
+      }
+
+      setStrokeColor(targetObjectForStyle.stroke || '#000000');
+      setOpacity(targetObjectForStyle.opacity || 1);
+      setStrokeWidth(targetObjectForStyle.strokeWidth || 1);
+      setStrokeDashArray(targetObjectForStyle.strokeDashArray || []);
+
+      if (selectedObject.type === 'textbox') {
         setTextValue(selectedObject.text);
         setFontSize(selectedObject.fontSize);
         setFontFamily(selectedObject.fontFamily);
         setIsBold(selectedObject.fontWeight === 'bold');
         setIsItalic(selectedObject.fontStyle === 'italic');
         setTextAlign(selectedObject.textAlign);
+        setTextColor(selectedObject.fill || '#000000');
+      } else if (selectedObject.type === 'group') {
+        const textObjectInGroup = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+        if (textObjectInGroup) {
+          setTextValue(textObjectInGroup.text);
+          setFontSize(textObjectInGroup.fontSize);
+          setFontFamily(textObjectInGroup.fontFamily);
+          setIsBold(textObjectInGroup.fontWeight === 'bold');
+          setIsItalic(textObjectInGroup.fontStyle === 'italic');
+          setTextAlign(textObjectInGroup.textAlign);
+          setTextColor(textObjectInGroup.fill || '#000000');
+        } else {
+          setTextValue('');
+          setFontSize(15);
+          setFontFamily('Arial');
+          setIsBold(false);
+          setIsItalic(false);
+          setTextAlign('left');
+          setTextColor('#000000');
+        }
       } else {
         setTextValue('');
         setFontSize(16);
@@ -158,6 +198,7 @@ const ObjectSettingsPanel = ({
         setIsBold(false);
         setIsItalic(false);
         setTextAlign('left');
+        setTextColor('#000000');
       }
     } else {
       setObjectWidth(0);
@@ -170,11 +211,12 @@ const ObjectSettingsPanel = ({
       setStrokeWidth(1);
       setStrokeDashArray([]);
       setTextValue('');
-      setFontSize(16);
+      setFontSize(15);
       setFontFamily('Arial');
       setIsBold(false);
       setIsItalic(false);
       setTextAlign('left');
+      setTextColor('#000000');
     }
 
     const handleClickOutside = (event) => {
@@ -194,50 +236,376 @@ const ObjectSettingsPanel = ({
 
   const handleCopy = () => {
     if (selectedObject) {
-      selectedObject.clone((clonedObj) => {
-        setClipboard(clonedObj);
-        console.log("Object copied:", clonedObj);
-      });
+      // Get the active object and serialize it
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        // For images, we need to ensure we're copying the correct image data
+        if (activeObject.type === 'image') {
+          const imageData = {
+            type: 'image',
+            src: activeObject._element.src,
+            left: activeObject.left,
+            top: activeObject.top,
+            scaleX: activeObject.scaleX,
+            scaleY: activeObject.scaleY,
+            angle: activeObject.angle,
+            width: activeObject.width,
+            height: activeObject.height,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(imageData);
+          console.log("Image copied to clipboard:", imageData);
+        } else if (activeObject.type === 'line') {
+          // Special handling for lines
+          const lineData = {
+            type: 'line',
+            x1: activeObject.x1,
+            y1: activeObject.y1,
+            x2: activeObject.x2,
+            y2: activeObject.y2,
+            stroke: activeObject.stroke,
+            strokeWidth: activeObject.strokeWidth,
+            left: activeObject.left,
+            top: activeObject.top,
+            angle: activeObject.angle,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(lineData);
+          console.log("Line copied to clipboard:", lineData);
+        } else {
+          // For other objects, use the standard toObject method
+          const objectData = activeObject.toObject();
+          setClipboard(objectData);
+          console.log("Object copied to clipboard:", objectData);
+        }
+      }
     }
   };
 
   const handleCut = () => {
     if (selectedObject) {
-      selectedObject.clone((clonedObj) => {
-        setClipboard(clonedObj);
-        fabricCanvas.remove(selectedObject);
-        fabricCanvas.requestRenderAll();
-        console.log("Object cut:", clonedObj);
-      });
+      // Get the active object and serialize it
+      const activeObject = fabricCanvas.getActiveObject();
+      if (activeObject) {
+        // For images, we need to ensure we're copying the correct image data
+        if (activeObject.type === 'image') {
+          const imageData = {
+            type: 'image',
+            src: activeObject._element.src,
+            left: activeObject.left,
+            top: activeObject.top,
+            scaleX: activeObject.scaleX,
+            scaleY: activeObject.scaleY,
+            angle: activeObject.angle,
+            width: activeObject.width,
+            height: activeObject.height,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(imageData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Image cut to clipboard:", imageData);
+        } else if (activeObject.type === 'line') {
+          // Special handling for lines
+          const lineData = {
+            type: 'line',
+            x1: activeObject.x1,
+            y1: activeObject.y1,
+            x2: activeObject.x2,
+            y2: activeObject.y2,
+            stroke: activeObject.stroke,
+            strokeWidth: activeObject.strokeWidth,
+            left: activeObject.left,
+            top: activeObject.top,
+            angle: activeObject.angle,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          };
+          setClipboard(lineData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Line cut to clipboard:", lineData);
+        } else {
+          // For other objects, use the standard toObject method
+          const objectData = activeObject.toObject();
+          setClipboard(objectData);
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.requestRenderAll();
+          console.log("Object cut to clipboard:", objectData);
+        }
+      }
     }
   };
 
-  const handlePaste = () => {
-    if (clipboard) {
-      clipboard.clone((clonedObj) => {
-        fabricCanvas.discardActiveObject();
-        clonedObj.set({
-          left: clonedObj.left + 10,
-          top: clonedObj.top + 10,
-          evented: true,
-        });
-        if (clonedObj.type === "activeSelection") {
-          // uncheck here to get all subobjects in the active selection
-          clonedObj.canvas = fabricCanvas;
-          clonedObj.forEachObject(function (obj) {
-            fabricCanvas.add(obj);
-          });
-          // this should improve the experience, when the group is too big,
-          // to ungroup it after creation
-          clonedObj.setCoords();
-        } else {
-          fabricCanvas.add(clonedObj);
-        }
-        fabricCanvas.setActiveObject(clonedObj);
-        fabricCanvas.requestRenderAll();
-        console.log("Object pasted:", clonedObj);
-      });
+  const handlePaste = async () => {
+    if (!fabricCanvas || !clipboard) {
+      console.log("Cannot paste: No canvas or clipboard data");
+      return;
     }
+    let pastedObject;
+    const offset = 20;
+    const objectType = clipboard.type ? clipboard.type.toLowerCase() : null;
+    switch (objectType) {
+      case 'group': {
+        // Manually reconstruct each child object from plain object data, recursively handle nested groups
+        function reconstructFabricObject(obj) {
+          if (!obj || !obj.type) return null;
+          const type = obj.type.toLowerCase();
+          switch (type) {
+            case 'rect': return new fabric.Rect(obj);
+            case 'circle': return new fabric.Circle(obj);
+            case 'ellipse': return new fabric.Ellipse(obj);
+            case 'polygon': return new fabric.Polygon(obj.points, obj);
+            case 'polyline': return new fabric.Polyline(obj.points, obj);
+            case 'triangle': return new fabric.Triangle(obj);
+            case 'line': return new fabric.Line([obj.x1, obj.y1, obj.x2, obj.y2], obj);
+            case 'image': return new fabric.Image(undefined, obj);
+            case 'textbox': {
+              const { text, type, version, ...options } = obj;
+              return new fabric.Textbox(text, options);
+            }
+            case 'text': {
+              const { text, type, version, ...options } = obj;
+              return new fabric.Text(text, options);
+            }
+            case 'path': return new fabric.Path(obj.path, obj);
+            case 'group': {
+              // Recursively reconstruct nested groups
+              const nestedChildren = (obj.objects || []).map(reconstructFabricObject).filter(child => child && typeof child.toObject === 'function');
+              return new fabric.Group(nestedChildren, obj);
+            }
+            default:
+              console.warn('Unknown child type in group:', obj.type, obj);
+              return null;
+          }
+        }
+        const children = (clipboard.objects || []).map(reconstructFabricObject).filter(obj => obj && typeof obj.toObject === 'function');
+        // Debug logs
+        console.log('children:', children);
+        console.log('types:', children.map(obj => obj && obj.type));
+        console.log('are all Fabric objects:', children.every(obj => obj && typeof obj.toObject === 'function'));
+        children.forEach((child, idx) => {
+          if (!child || typeof child.toObject !== 'function') {
+            console.warn(`Child ${idx} is not a valid Fabric object:`, child);
+          }
+        });
+        // Only pass valid group options, not the entire clipboard object
+        const {
+          left, top, scaleX, scaleY, angle, width, height, fill, stroke, strokeWidth,
+          opacity, visible, backgroundColor, skewX, skewY, flipX, flipY, originX, originY
+        } = clipboard;
+        pastedObject = new fabric.Group(children, {
+          left: (left || 0) + offset,
+          top: (top || 0) + offset,
+          scaleX, scaleY, angle, width, height, fill, stroke, strokeWidth,
+          opacity, visible, backgroundColor, skewX, skewY, flipX, flipY, originX, originY,
+          evented: true,
+          fontSize: 15, 
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
+      case 'image':
+        // For images, we need to load the image first
+        if (!clipboard.src) {
+          console.error("No image source found in clipboard data");
+          return;
+        }
+
+        // Create a new image element
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        
+        img.onload = () => {
+          // Create a new fabric image
+          const fabricImage = new fabric.Image(img, {
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            scaleX: clipboard.scaleX || 1,
+            scaleY: clipboard.scaleY || 1,
+            angle: clipboard.angle || 0,
+            width: clipboard.width || img.width,
+            height: clipboard.height || img.height,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          });
+
+          // Remove any existing selection
+          fabricCanvas.discardActiveObject();
+          
+          // Add the new image
+          fabricCanvas.add(fabricImage);
+          
+          // Select only the new image
+          fabricCanvas.setActiveObject(fabricImage);
+          fabricCanvas.requestRenderAll();
+          setSelectedObject(fabricImage);
+          console.log("Image pasted successfully");
+        };
+
+        img.onerror = (error) => {
+          console.error("Error loading image:", error);
+        };
+
+        // Set the image source to start loading
+        img.src = clipboard.src;
+        return;
+
+      case 'rect':
+        pastedObject = new fabric.Rect({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'circle':
+        pastedObject = new fabric.Circle({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'text':
+        pastedObject = new fabric.Text(clipboard.text, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'path':
+        pastedObject = new fabric.Path(clipboard.path, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'polygon':
+        pastedObject = new fabric.Polygon(clipboard.points, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'polyline':
+        pastedObject = new fabric.Polyline(clipboard.points, {
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'line':
+        pastedObject = new fabric.Line(
+          [clipboard.x1, clipboard.y1, clipboard.x2, clipboard.y2],
+          {
+            ...clipboard,
+            left: (clipboard.left || 0) + offset,
+            top: (clipboard.top || 0) + offset,
+            evented: true,
+            selectable: true,
+            hasControls: true,
+            hasBorders: true,
+          }
+        );
+        break;
+
+      case 'triangle':
+        pastedObject = new fabric.Triangle({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+      case 'ellipse':
+        pastedObject = new fabric.Ellipse({
+          ...clipboard,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+        evented: true,
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
+      });
+        break;
+
+        default:
+          // For any other type, try to use enlivenObjects as a fallback
+          console.log("default")
+          fabric.util.enlivenObjects([clipboard], (objects) => {
+            if (objects && objects.length > 0) {
+              const obj = objects[0];
+              obj.set({
+                left: (clipboard.left || 0) + offset,
+                top: (clipboard.top || 0) + offset,
+                evented: true,
+                selectable: true,
+                hasControls: true,
+                hasBorders: true,
+              });
+              fabricCanvas.add(obj);
+              fabricCanvas.setActiveObject(obj);
+              fabricCanvas.requestRenderAll();
+              setSelectedObject(obj);
+            }
+          });
+          return;
+    }
+
+    // Add the object to canvas
+    fabricCanvas.add(pastedObject);
+    
+    // Select the pasted object
+    fabricCanvas.setActiveObject(pastedObject);
+    fabricCanvas.requestRenderAll();
+    
+    // Update selected object state
+    setSelectedObject(pastedObject);
+    console.log("Object pasted successfully");
   };
 
   const handleDelete = () => {
@@ -276,7 +644,7 @@ const ObjectSettingsPanel = ({
 
   const handleSendToBack = () => {
     if (selectedObject) {
-      fabricCanvas.sendToBack(selectedObject);
+      fabricCanvas.sendObjectToBack(selectedObject);
       fabricCanvas.requestRenderAll();
       console.log("Object sent to back");
     }
@@ -284,7 +652,7 @@ const ObjectSettingsPanel = ({
 
   const handleSendBackward = () => {
     if (selectedObject) {
-      fabricCanvas.sendBackward(selectedObject);
+      fabricCanvas.sendObjectBackwards(selectedObject);
       fabricCanvas.requestRenderAll();
       console.log("Object sent backward");
     }
@@ -292,7 +660,7 @@ const ObjectSettingsPanel = ({
 
   const handleBringForward = () => {
     if (selectedObject) {
-      fabricCanvas.bringForward(selectedObject);
+      fabricCanvas.bringObjectForward(selectedObject);
       fabricCanvas.requestRenderAll();
       console.log("Object brought forward");
     }
@@ -300,7 +668,7 @@ const ObjectSettingsPanel = ({
 
   const handleBringToFront = () => {
     if (selectedObject) {
-      fabricCanvas.bringToFront(selectedObject);
+      fabricCanvas.bringObjectToFront(selectedObject);
       fabricCanvas.requestRenderAll();
       console.log("Object brought to front");
     }
@@ -432,7 +800,11 @@ const ObjectSettingsPanel = ({
 
   const handleColorChange = (color) => {
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         fill: color,
         stroke: color,
         cornerColor: color
@@ -444,7 +816,11 @@ const ObjectSettingsPanel = ({
 
   const handleStrokeColorChange = (color) => {
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         stroke: color
       });
       setStrokeColor(color);
@@ -454,10 +830,14 @@ const ObjectSettingsPanel = ({
 
   const handleGradientChange = (colors) => {
     if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
       try {
         // Get the scaled dimensions of the object
-        const scaledWidth = selectedObject.getScaledWidth();
-        const scaledHeight = selectedObject.getScaledHeight();
+        const scaledWidth = targetObject.getScaledWidth();
+        const scaledHeight = targetObject.getScaledHeight();
 
         const gradient = new fabric.Gradient({
           type: 'linear',
@@ -473,7 +853,7 @@ const ObjectSettingsPanel = ({
           }))
         });
 
-        selectedObject.set('fill', gradient);
+        targetObject.set('fill', gradient);
         fabricCanvas.requestRenderAll();
         console.log('Gradient applied:', gradient);
         console.log('Selected object dimensions (scaled):', scaledWidth, scaledHeight);
@@ -485,8 +865,12 @@ const ObjectSettingsPanel = ({
 
   const handleOpacityChange = (value) => {
     if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
       const newOpacity = parseFloat(value);
-      selectedObject.set({
+      targetObject.set({
         opacity: newOpacity
       });
       setOpacity(newOpacity);
@@ -497,13 +881,24 @@ const ObjectSettingsPanel = ({
   const handleStrokeWidthChange = (e) => {
     const newWidth = e.target.value;
     setStrokeWidth(newWidth);
-    updateObjectProperty("strokeWidth", newWidth);
+    if (selectedObject) {
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set("strokeWidth", parseFloat(newWidth));
+      fabricCanvas.requestRenderAll();
+    }
   };
 
   const handleStrokeDashArrayChange = (e) => {
     const newDashArray = JSON.parse(e.target.value);
     if (selectedObject) {
-      selectedObject.set({
+      let targetObject = selectedObject;
+      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
+        targetObject = selectedObject.getObjects()[0];
+      }
+      targetObject.set({
         strokeDashArray: newDashArray
       });
       setStrokeDashArray(newDashArray);
@@ -516,10 +911,17 @@ const ObjectSettingsPanel = ({
     setTextValue(newText);
     console.log("handleTextInputChange called. newText:", newText);
     console.log("selectedObject:", selectedObject);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('text', newText);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+
+    if (textObject) {
+      textObject.set('text', newText);
       fabricCanvas.requestRenderAll();
-      console.log("Text object updated.", selectedObject.text);
+      console.log("Text object updated.", textObject.text);
     } else {
       console.log("Selected object is not a text type or no object is selected.");
     }
@@ -528,8 +930,14 @@ const ObjectSettingsPanel = ({
   const handleFontFamilyChange = (e) => {
     const newFontFamily = e.target.value;
     setFontFamily(newFontFamily);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontFamily', newFontFamily);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontFamily', newFontFamily);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -537,8 +945,14 @@ const ObjectSettingsPanel = ({
   const handleFontSizeChange = (e) => {
     const newFontSize = parseFloat(e.target.value);
     setFontSize(newFontSize);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontSize', newFontSize);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontSize', newFontSize);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -546,8 +960,14 @@ const ObjectSettingsPanel = ({
   const handleBoldToggle = () => {
     const newIsBold = !isBold;
     setIsBold(newIsBold);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontWeight', newIsBold ? 'bold' : 'normal');
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontWeight', newIsBold ? 'bold' : 'normal');
       fabricCanvas.requestRenderAll();
     }
   };
@@ -555,16 +975,42 @@ const ObjectSettingsPanel = ({
   const handleItalicToggle = () => {
     const newIsItalic = !isItalic;
     setIsItalic(newIsItalic);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('fontStyle', newIsItalic ? 'italic' : 'normal');
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fontStyle', newIsItalic ? 'italic' : 'normal');
       fabricCanvas.requestRenderAll();
     }
   };
 
   const handleTextAlignChange = (alignment) => {
     setTextAlign(alignment);
-    if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text')) {
-      selectedObject.set('textAlign', alignment);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('textAlign', alignment);
+      fabricCanvas.requestRenderAll();
+    }
+  };
+
+  const handleTextColorChange = (color) => {
+    setTextColor(color);
+    let textObject = null;
+    if (selectedObject && selectedObject.type === 'group') {
+      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
+    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
+      textObject = selectedObject;
+    }
+    if (textObject) {
+      textObject.set('fill', color);
       fabricCanvas.requestRenderAll();
     }
   };
@@ -574,8 +1020,12 @@ const ObjectSettingsPanel = ({
   return (
     <div
       ref={panelRef}
-      className="absolute bg-white border border-gray-300 rounded-lg shadow-lg h-[450px] w-96 z-50 text-xs"
-      style={{ left: position.left, top: position.top }}
+      className="absolute bg-white border border-gray-300 rounded-lg shadow-lg h-[450px] w-96 text-xs"
+      style={{
+        left: finalLeft,
+        top: finalTop,
+        zIndex: 9999,
+      }}
     >
       <div className="flex border-b border-gray-200">
         <div className="flex flex-1">
@@ -1086,7 +1536,7 @@ const ObjectSettingsPanel = ({
                   {activeSubSubTab === "Colors" && (
                     <div className="min-h-[24.8vh] w-[348.5px] p-2 grid grid-cols-6 gap-5 rounded">
                       {[
-                        "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
+                        "#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
 
                         '#FF3333', '#FF6666', '#FF9999', '#FFCCCC', '#FFE5E5', '#990000', '#660000',
                          '#33FF33', '#66FF66', '#99FF99', '#CCFFCC', '#E5FFE5', '#009900', '#006600',
@@ -1278,7 +1728,7 @@ const ObjectSettingsPanel = ({
               onChange={handleTextInputChange}
               className="border border-gray-300 rounded px-2 py-1 text-xs"
               placeholder="Enter text..."
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             />
           </div>
 
@@ -1292,18 +1742,60 @@ const ObjectSettingsPanel = ({
               value={fontFamily}
               onChange={handleFontFamilyChange}
               className="border border-gray-300 rounded px-2 py-1 text-xs"
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
-              <option value="Arial">Arial</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Helvetica">Helvetica</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-              <option value="Times New Roman">Times New Roman</option>
+              <option value="Arial">Default (Arial)</option>
+              <option value="Arial Black">Arial Black</option>
+              <option value="Arial Narrow">Arial Narrow</option>
+              <option value="Book Antiqua">Book Antiqua</option>
+              <option value="Bookman Old Style">Bookman Old Style</option>
+              <option value="Calibri">Calibri</option>
+              <option value="Cambria">Cambria</option>
+              <option value="Century Gothic">Century Gothic</option>
+              <option value="Comic Sans MS">Comic Sans MS</option>
+              <option value="Consolas">Consolas</option>
+              <option value="Courier New">Courier New</option>
               <option value="Georgia">Georgia</option>
               <option value="Garamond">Garamond</option>
-              <option value="Courier New">Courier New</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Impact">Impact</option>
+              <option value="Lucida Console">Lucida Console</option>
+              <option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+              <option value="Microsoft Sans Serif">Microsoft Sans Serif</option>
+              <option value="Monotype Corsiva">Monotype Corsiva</option>
+              <option value="Palatino Linotype">Palatino Linotype</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+              <option value="Verdana">Verdana</option>
               <option value="Brush Script MT">Brush Script MT</option>
+              <option value="Copperplate Gothic">Copperplate Gothic</option>
+              <option value="Franklin Gothic">Franklin Gothic</option>
+              <option value="Gill Sans">Gill Sans</option>
+              <option value="Segoe UI">Segoe UI</option>
+              <option value="Segoe Script">Segoe Script</option>
+              <option value="Segoe Print">Segoe Print</option>
+              <option value="Rockwell">Rockwell</option>
+              <option value="Optima">Optima</option>
+              <option value="Perpetua">Perpetua</option>
+              <option value="Baskerville">Baskerville</option>
+              <option value="Futura">Futura</option>
+              <option value="Didot">Didot</option>
+              <option value="Bodoni">Bodoni</option>
+              <option value="Century">Century</option>
+              <option value="Avant Garde">Avant Garde</option>
+              <option value="Geneva">Geneva</option>
+              <option value="Courier">Courier</option>
+              <option value="Monaco">Monaco</option>
+              <option value="Andale Mono">Andale Mono</option>
+              <option value="Bradley Hand">Bradley Hand</option>
+              <option value="Chalkboard">Chalkboard</option>
+              <option value="Chalkboard SE">Chalkboard SE</option>
+              <option value="Comic Sans">Comic Sans</option>
+              <option value="Marker Felt">Marker Felt</option>
+              <option value="Menlo">Menlo</option>
+              <option value="Papyrus">Papyrus</option>
+              <option value="Zapfino">Zapfino</option>
             </select>
           </div>
 
@@ -1315,20 +1807,20 @@ const ObjectSettingsPanel = ({
               value={fontSize}
               onChange={handleFontSizeChange}
               className="flex-1 border border-gray-300 rounded px-2 py-1 text-right text-xs"
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             />
             <div className="flex flex-col">
               <button
                 className="w-5 h-3.5 bg-gray-200 hover:bg-gray-300 rounded-t-sm flex items-center justify-center text-xs"
                 onClick={() => handleFontSizeChange({ target: { value: fontSize + 1 } })}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 &#9650;
               </button>
               <button
                 className="w-5 h-3.5 bg-gray-200 hover:bg-gray-300 rounded-b-sm flex items-center justify-center text-xs"
                 onClick={() => handleFontSizeChange({ target: { value: fontSize - 1 } })}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 &#9660;
               </button>
@@ -1340,14 +1832,14 @@ const ObjectSettingsPanel = ({
             <button
               className={`px-3 py-1 rounded font-bold ${isBold ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               onClick={handleBoldToggle}
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
               B
             </button>
             <button
               className={`px-3 py-1 rounded italic ${isItalic ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
               onClick={handleItalicToggle}
-              disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+              disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
             >
               I
             </button>
@@ -1355,24 +1847,53 @@ const ObjectSettingsPanel = ({
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'left' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('left')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Left
               </button>
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'center' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('center')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Center
               </button>
               <button
                 className={`px-3 py-1 rounded ${textAlign === 'right' ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 onClick={() => handleTextAlignChange('right')}
-                disabled={!selectedObject || !(selectedObject.type === 'text' || selectedObject.type === 'i-text')}
+                disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
               >
                 Right
               </button>
+            </div>
+          </div>
+          {/* Text Color Picker */}
+          <div className="mt-4 p-2 border-t border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Text Color</span>
+            <div className="h-[15vh] w-full grid grid-cols-6 gap-2 overflow-y-scroll overflow-x-hidden rounded mt-2">
+              {[ 
+                "#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#33FFF5", "#F5FF33", "#C70039", "#900C3F", "#581845","#FFC300", "#DAF7A6", "#FF5733", "#4A235A","#1B4F72","#0E6251","#7D6608","#784212", "#4D5656",
+                '#FF3333', '#FF6666', '#FF9999', '#FFCCCC', '#FFE5E5', '#990000', '#660000',
+                '#33FF33', '#66FF66', '#99FF99', '#CCFFCC', '#E5FFE5', '#009900', '#006600',
+                '#0000FF', '#3333FF', '#6666FF', '#9999FF', '#CCCCFF', '#E5E5FF', '#000099', '#000066',
+                '#FFFF00', '#FFFF33', '#FFFF66', '#FFFF99', '#FFFFCC', '#FFFFE5', '#999900', '#666600',
+                '#FF00FF', '#FF33FF', '#FF66FF', '#FF99FF', '#FFCCFF', '#FFE5FF', '#990099', '#660066','#33FFFF', '#66FFFF', '#99FFFF', '#CCFFFF', '#E5FFFF', '#009999', '#006666',
+                '#FFA500', '#FFB733', '#FFC966', '#FFDB99', '#FFEDCC', '#FFF6E5', '#996300', '#663D00',
+                '#800080', '#993399', '#B366B3', '#CC99CC', '#E5CCE5', '#F2E5F2', '#4D004D', '#330033',
+                '#A52A2A', '#B35959', '#C28989', '#D1B2B2', '#E8D9D9', '#F3ECEC', '#5C1616', '#330D0D',
+                '#FF6347', '#FF7F50', '#FF8C69', '#FFA07A', '#FFB6C1', '#FFDAB9', '#CD5C5C', '#E9967A',
+                '#4682B4', '#5F9EA0', '6495ED', '#7B68EE', '#9370DB', '#BA55D3', '#4169E1', '#6A5ACD',
+                '#2E8B57', '#3CB371', '#20B2AA', '#00CED1', '#40E0D0', '#AFEEEE', '#008080', '#008B8B'
+              ].map((color) => (
+                <button
+                  key={color}
+                  className={`w-6 h-6 rounded hover:scale-105 transition-transform ${(!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ backgroundColor: `${color}` }}
+                  onClick={() => handleTextColorChange(color)}
+                  title={`Color: ${color}`}
+                  disabled={!selectedObject || (!(selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox') && !(selectedObject.type === 'group' && selectedObject.getObjects().some(obj => obj.type === 'textbox')))}
+                />
+              ))}
             </div>
           </div>
         </div>

@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export const ToolsPanel = ({ 
   activeTool, 
@@ -45,7 +46,9 @@ export const ToolsPanel = ({
   canvasSize, 
   onCanvasSizeChange,
   fabricCanvas,
-  selectedObject 
+  selectedObject,
+  onStrokeColorChange,
+  onStrokeWidthChange
 }) => {
   const [selectedBasicShape, setSelectedBasicShape] = useState(null);
   const [selectedArrow, setSelectedArrow] = useState(null);
@@ -53,6 +56,7 @@ export const ToolsPanel = ({
   const [arrowsOpen, setArrowsOpen] = useState(false);
   const [strokeColor, setStrokeColor] = useState("#ef4444"); // Default red color
   const [fillColor, setFillColor] = useState("#15D7FF"); // Default blue color
+  const [selectedStrokeThickness, setSelectedStrokeThickness] = useState(2); // New state for stroke thickness
 
   const colors = [
     "#facc15", // yellow
@@ -250,6 +254,7 @@ export const ToolsPanel = ({
     { id: "image", icon: Image, label: "Image" },
     { id: "pencil", icon: Pencil, label: "Draw" },
     { id: "line", icon: Slash, label: "Line" },
+    
     { 
       id: "stroke", 
       icon: () => (
@@ -265,12 +270,7 @@ export const ToolsPanel = ({
                 onClick={() => {
                   if (selectedObject) {
                     const fillColor = selectedObject.fill || '#000000';
-                    setStrokeColor(fillColor);
-                    selectedObject.set({
-                      stroke: fillColor
-                    });
-                    fabricCanvas.requestRenderAll();
-                    onToolChange("stroke", fillColor);
+                    handleStrokeColorChange(fillColor);
                   }
                 }}
               >
@@ -281,16 +281,7 @@ export const ToolsPanel = ({
                   key={color}
                   className="w-8 h-8 rounded-full cursor-pointer border border-gray-300"
                   style={{ backgroundColor: color }}
-                  onClick={() => {
-                    setStrokeColor(color);
-                    if (selectedObject) {
-                      selectedObject.set({
-                        stroke: color
-                      });
-                      fabricCanvas.requestRenderAll();
-                    }
-                    onToolChange("stroke", color);
-                  }}
+                  onClick={() => handleStrokeColorChange(color)}
                 />
               ))}
             </div>
@@ -347,7 +338,44 @@ export const ToolsPanel = ({
       ), 
       label: "Fill" 
     },
-    { id: "point", icon: Circle, label: "Point" },
+    { 
+      id: "point", 
+      icon: () => (
+        <div 
+          className={`w-8 h-8 rounded-full cursor-pointer flex items-center justify-center`}
+        >
+          <div 
+            className="rounded-full bg-gray-600"
+            style={{ width: `${selectedStrokeThickness * 2}px`, height: `${selectedStrokeThickness * 2}px` }}
+          />
+        </div>
+      ),
+      label: "Point",
+      dropdown: (
+        <DropdownMenuContent className="w-48 ms-64">
+          <DropdownMenuLabel>Select Stroke Thickness</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((thickness) => (
+              <DropdownMenuItem 
+                key={thickness}
+                onClick={() => {
+                  handleStrokeWidthChange(thickness);
+                }}
+              >
+                <div 
+                  className="w-full h-4 flex items-center justify-center"
+                >
+                  <div 
+                    className="rounded-full bg-gray-600"
+                    style={{ width: `${thickness * 2}px`, height: `${thickness * 2}px` }}
+                  />
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      )
+    },
     { id: "starTool", icon: Star, label: "Star" },
   ];
 
@@ -424,47 +452,82 @@ export const ToolsPanel = ({
     onToolChange("shape", shapeType, fillColor);
   };
 
+  const handleStrokeColorChange = (color) => {
+    setStrokeColor(color);
+    if (selectedObject) {
+      selectedObject.set({
+        stroke: color
+      });
+      fabricCanvas.requestRenderAll();
+    }
+    onToolChange("stroke", color);
+    if (onStrokeColorChange) {
+      onStrokeColorChange(color);
+    }
+  };
+
+  const handleStrokeWidthChange = (width) => {
+    setSelectedStrokeThickness(width);
+    if (selectedObject) {
+      selectedObject.set({
+        strokeWidth: width
+      });
+      fabricCanvas.requestRenderAll();
+    }
+    onToolChange("point", width);
+    if (onStrokeWidthChange) {
+      onStrokeWidthChange(width);
+    }
+  };
+
   return (
     <div className="border-b bg-background p-4">
       <div className=" mt-">
         <div className="flex flex-col items-end justify-end gap-2 space-x-2">
           {tools.map((tool) => (
-            tool.id === "field" ? (
+            tool.id === "field" || tool.id === "point" ? (
               <DropdownMenu key={tool.id}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant={activeTool === tool.id ? "default" : "outline"}
-                    size="md"
-                    className="flex items-center space-x-1 rounded-full p-3"
-                  >
-                    <tool.icon className="scale-125" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        size="md"
+                        className={`flex items-center space-x-1 rounded-full ${tool.id === "point" ? "p-1" : "p-3"}`}
+                      >
+                        {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{tool.label}</TooltipContent>
+                </Tooltip>
                 {tool.dropdown}
               </DropdownMenu>
             ) : (
-             <>
-              <Button
-                key={tool.id}
-                variant={activeTool === tool.id ? "default" : "outline"}
-                size="md"
-                onClick={() => {
-                  if (tool.id === "image") {
-                    handleImageClick();
-                  } else if (tool.id === "stroke") {
-                    onToolChange(tool.id, strokeColor);
-                  } else if (tool.id === "fill") {
-                    onToolChange(tool.id, fillColor);
-                  } else {
-                    onToolChange(tool.id);
-                  }
-                }}
-                className={`flex items-center space-x-1 rounded-full ${tool.id === "stroke" || tool.id === "fill" ? "!bg-transparent" : "p-3"}`}
-              >
-                {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
-              </Button>
-               {tool.id === "stroke" || tool.id === "fill" ? <h1 className="-mt-2 text-xs font-semibold">{tool.id}</h1> : null}
-             </>
+              <Tooltip key={tool.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTool === tool.id ? "default" : "outline"}
+                    size="md"
+                    onClick={() => {
+                      if (tool.id === "image") {
+                        handleImageClick();
+                      } else if (tool.id === "stroke") {
+                        onToolChange(tool.id, strokeColor);
+                      } else if (tool.id === "fill") {
+                        onToolChange(tool.id, fillColor);
+                      } else {
+                        onToolChange(tool.id);
+                      }
+                    }}
+                    className={`flex items-center space-x-1 rounded-full ${tool.id === "stroke" || tool.id === "fill" ? "!bg-transparent" : "p-3"}`}
+                  >
+                    {typeof tool.icon === "function" ? tool.icon() : <tool.icon className="scale-125" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">{tool.label}</TooltipContent>
+                {tool.id === "stroke" || tool.id === "fill" ? <h1 className="-mt-2 text-xs font-semibold">{tool.id}</h1> : null}
+              </Tooltip>
             )
           ))}
           
@@ -499,6 +562,7 @@ export const ToolsPanel = ({
           </div>
         </div> */}
       </div>
+      {/* Add this block for the Point tool's label */}
     </div>
   );
 };

@@ -27,68 +27,10 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Loader } from "../pages/Loader";
+import { useTag } from "../utils/TagService/TagHooks/useTag";
 
-const tagData = [
-  {
-    title: "vv",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "15-07-2025",
-    dateModified: "15-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "ss",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "12-07-2025",
-    dateModified: "12-07-2025",
-    modifiedBy: "user",
-  },
-  {
-    title: "sssss",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "09-07-2025",
-    dateModified: "09-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "eeeeeee",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "08-07-2025",
-    dateModified: "08-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "aaaa",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "07-07-2025",
-    dateModified: "07-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "sss",
-    createdBy: "aman",
-    dateCreated: "09-07-2025",
-    dateModified: "09-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "user",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "08-07-2025",
-    dateModified: "08-07-2025",
-    modifiedBy: "Admin",
-  },
-  {
-    title: "demo",
-    createdBy: "Amitesh Sinha",
-    dateCreated: "07-07-2025",
-    dateModified: "07-07-2025",
-    modifiedBy: "Admin",
-  },
-  // Add more data as per your list...
-];
-
-// Reusable FilterDropdown Component
 const FilterDropdown = ({
   isOpen,
   onClose,
@@ -115,6 +57,7 @@ const FilterDropdown = ({
 }) => {
   const [date1, setDate1] = useState(null);
   const [date2, setDate2] = useState(null);
+
 
   if (!isOpen) return null;
 
@@ -312,7 +255,6 @@ const FilterDropdown = ({
 };
 
 function List() {
-  const [tagList, setTagList] = useState(tagData);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [titleFilterDropdown, setTitleFilterDropdown] = useState(false);
   const [createdByFilterDropdown, setCreatedByFilterDropdown] = useState(false);
@@ -327,7 +269,6 @@ function List() {
   const [selectedDates, setSelectedDates] = useState([]);
   const [selectedModifiedDates, setSelectedModifiedDates] = useState([]);
   const [selectedModifiers, setSelectedModifiers] = useState([]);
-  const [filteredTagList, setFilteredTagList] = useState(tagData);
   const [searchQuery1, setSearchQuery1] = useState("");
   const [searchQuery2, setSearchQuery2] = useState("");
   const [creatorSearchQuery1, setCreatorSearchQuery1] = useState("");
@@ -358,20 +299,71 @@ function List() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const headerRefs = useRef({});
 
+  const [tagData, setTagData] = useState([])
+  const [tagList, setTagList] = useState(tagData);
+  const [filteredTagList, setFilteredTagList] = useState(tagData);
+  const [company_code,setCompany_code] = useState("afhstXDev")
+
+  const [loading, setLoading] = useState(true);
+
+  const [tagListDeleteId, setTagListDeleteId] = useState("")
+  
+  const {
+    fetchTagList,
+    deleteTag,
+  } = useTag();
+
+
+  useEffect(() => {
+    const loadTags = async () => {
+      const data = await fetchTagList();
+
+      console.log(data,"datalist");
+      setLoading(false)
+      
+      if (data && data.records) {
+        setTagData(
+          data.records.map(tag => (
+            console.log(tag,"tag"),
+            {
+            
+            title: tag.template_name,
+            createdBy: tag.created_by,
+            dateCreated: tag.created_date,
+            dateModified: tag.updated_date,
+            modifiedBy: tag.updated_by,
+            id: tag.id,
+            pageSize: tag.page_size,
+            templateHtml: tag.template_html,
+          }))
+        )
+      }
+    };
+    loadTags();
+  }, []);
+
   const navigate = useNavigate();
 
   // State for delete confirmation popup
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Handle delete confirmation
-  const handleDelete = useCallback(() => {
-    console.log("Deleting item (API call would go here):", itemToDelete);
-    // In a real application, you would make an API call here to delete the item.
-    // After successful deletion, you would then update your state (e.g., refetch data).
+  // Add new state for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: null
+  });
+
+
+  const handleDelete = async () => {
+    if (!tagListDeleteId) {
+      alert('No item selected for delete!');
+      return;
+    }
+    await deleteTag(company_code,tagListDeleteId);
     setShowDeleteConfirm(false);
-    setItemToDelete(null);
-  }, [itemToDelete]);
+    setTagListDeleteId(null);
+  };
 
   // Get unique values
   const uniqueTitles = Array.from(new Set(tagData.map((tag) => tag.title)));
@@ -824,70 +816,78 @@ function List() {
     modifiedByFilterDropdown,
   ]);
 
+  // Add sort handler
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...filteredTagList].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredTagList(sortedData);
+  };
+
+  // Update MemoizedSortableHeader component
   const MemoizedSortableHeader = React.memo(({ label, columnKey }) => {
     return (
-      <TableHead
-        className="relative text-black dark:text-white"
+      <th
+        className="px-4 py-2 text-left text-gray-600 relative"
         ref={(el) => (headerRefs.current[columnKey] = el)}
       >
         <div
           className="flex items-center gap-1 cursor-pointer"
           onClick={() => {
             updateDropdownPosition(columnKey);
-            if (columnKey === "title") {
-              setTitleFilterDropdown((prev) => !prev);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "createdBy") {
-              setCreatedByFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "dateCreated") {
-              setDateCreatedFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "dateModified") {
-              setDateModifiedFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
-              setOpenDropdown(null);
-            } else if (columnKey === "modifiedBy") {
-              setModifiedByFilterDropdown((prev) => !prev);
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setOpenDropdown(null);
-            } else {
-              setOpenDropdown((prev) =>
-                prev === columnKey ? null : columnKey
-              );
-              setTitleFilterDropdown(false);
-              setCreatedByFilterDropdown(false);
-              setDateCreatedFilterDropdown(false);
-              setDateModifiedFilterDropdown(false);
-              setModifiedByFilterDropdown(false);
+            switch (columnKey) {
+              case "title":
+                setTitleFilterDropdown((prev) => !prev);
+                break;
+              case "createdBy":
+                setCreatedByFilterDropdown((prev) => !prev);
+                break;
+              case "dateCreated":
+                setDateCreatedFilterDropdown((prev) => !prev);
+                break;
+              case "dateModified":
+                setDateModifiedFilterDropdown((prev) => !prev);
+                break;
+              case "modifiedBy":
+                setModifiedByFilterDropdown((prev) => !prev);
+                break;
+              default:
+                break;
             }
           }}
         >
           {label}
           <div className="flex flex-col">
-            <FaSortUp className="text-xs -mb-1" />
-            <FaSortDown className="text-xs -mt-1" />
+            <FaSortUp
+              className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
+            <FaSortDown
+              className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
           </div>
         </div>
-      </TableHead>
+      </th>
     );
   });
 
@@ -1055,80 +1055,98 @@ function List() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border dark:border-gray-800">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-100 dark:bg-zinc-900 text-black dark:text-white">
-              <MemoizedSortableHeader label="Title" columnKey="title" />
-              <MemoizedSortableHeader
-                label="Created By"
-                columnKey="createdBy"
-              />
-              <MemoizedSortableHeader
-                label="Date Created"
-                columnKey="dateCreated"
-              />
-              <MemoizedSortableHeader
-                label="Date Modified"
-                columnKey="dateModified"
-              />
-              <MemoizedSortableHeader
-                label="Modified By"
-                columnKey="modifiedBy"
-              />
-              <TableHead>Edit</TableHead>
-              <TableHead>Clone</TableHead>
-              <TableHead>Print</TableHead>
-              <TableHead>Delete</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {filteredTagList.map((tag, idx) => (
-              <TableRow key={idx}>
-                <TableCell>{tag.title}</TableCell>
-                <TableCell>{tag.createdBy}</TableCell>
-                <TableCell>{tag.dateCreated}</TableCell>
-                <TableCell>{tag.dateModified}</TableCell>
-                <TableCell>{tag.modifiedBy}</TableCell>
-
-                <TableCell>
-                  <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition">
-                    <FiEdit className="text-sm" />
-                    Edit
-                  </Button>
-                </TableCell>
-
-                <TableCell>
-                  <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
-                    <FiCopy className="text-sm" />
-                    Clone
-                  </Button>
-                </TableCell>
-
-                <TableCell>
-                  <Button onClick = {()=> navigate("/print", {state : {tagTile : tag.title}})} className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
-                    <FiPrinter className="text-sm" />
-                    Print
-                  </Button>
-                </TableCell>
-
-                <TableCell>
-                  <Button
-                    className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition"
-                    onClick={() => {
-                      setItemToDelete(tag.title);
-                      setShowDeleteConfirm(true);
-                    }}
-                  >
-                    <FiTrash2 className="text-sm" />
-                    Delete
-                  </Button>
-                </TableCell>
+      <div className="overflow-x-auto rounded-lg border dark:border-gray-800 h-[75vh]">
+        {loading ? (
+          <Loader />
+        ) : filteredTagList.length === 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '300px',
+            color: '#d97706',
+            fontWeight: 600,
+            fontSize: '1.2rem'
+          }}>
+            No Data Found
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-100 dark:bg-zinc-900 text-black dark:text-white">
+                <MemoizedSortableHeader label="Title" columnKey="title" />
+                <MemoizedSortableHeader
+                  label="Created By"
+                  columnKey="createdBy"
+                />
+                <MemoizedSortableHeader
+                  label="Date Created"
+                  columnKey="dateCreated"
+                />
+                <MemoizedSortableHeader
+                  label="Date Modified"
+                  columnKey="dateModified"
+                />
+                <MemoizedSortableHeader
+                  label="Modified By"
+                  columnKey="modifiedBy"
+                />
+                <TableHead>Edit</TableHead>
+                <TableHead>Clone</TableHead>
+                <TableHead>Print</TableHead>
+                <TableHead>Delete</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+
+            <TableBody>
+              {filteredTagList.map((tag, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>{tag.title}</TableCell>
+                  <TableCell>{tag.createdBy}</TableCell>
+                  <TableCell>{tag.dateCreated}</TableCell>
+                  <TableCell>{tag.dateModified}</TableCell>
+                  <TableCell>{tag.modifiedBy}</TableCell>
+
+                  <TableCell>
+                    <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition">
+                      <FiEdit className="text-sm" />
+                      Edit
+                    </Button>
+                  </TableCell>
+
+                  <TableCell>
+                    <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
+                      <FiCopy className="text-sm" />
+                      Clone
+                    </Button>
+                  </TableCell>
+
+                  <TableCell>
+                    <Button onClick={() => navigate("/print", { state: { tagTile: tag.title } })} className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
+                      <FiPrinter className="text-sm" />
+                      Print
+                    </Button>
+                  </TableCell>
+
+                  <TableCell>
+                    <Button
+                      className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition"
+                      onClick={() => {
+                        setItemToDelete(tag.title);
+                        setShowDeleteConfirm(true);
+                        setTagListDeleteId(tag.id);
+                      }}
+                    >
+                      <FiTrash2 className="text-sm" />
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
       {renderDropdown("title")}
       {renderDropdown("createdBy")}

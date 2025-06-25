@@ -23,7 +23,7 @@ const ShapesPanel = ({ onDragStart }) => {
     { id: 'cross', name: 'Cross' },
     { id: 'rightTriangle', name: 'Right Triangle' },
     { id: 'roundedRectangle', name: 'Rounded Rectangle' },
-    { id: 'cloud', name: 'Cloud' },
+    // { id: 'cloud', name: 'Cloud' },
     { id: 'pentagon', name: 'Pentagon' },
     { id: 'heptagon', name: 'Heptagon' },
   ];
@@ -62,7 +62,7 @@ const ShapesPanel = ({ onDragStart }) => {
         if (id === 'cloud') {
           object.scale(1.5); // Adjust scale for better visibility
         } else {
-          object.scale(1);
+          object.scale(0.8);
         }
       } else {
         object = ARROWS[id](PREVIEW_SIZE/2, PREVIEW_SIZE/2);
@@ -105,10 +105,10 @@ const ShapesPanel = ({ onDragStart }) => {
   }, [activeTab]);
 
   return (
-    <div className="w-full bg-white p-4 flex flex-col -mt-5">
+    <div className="w-[400px] bg-white p-4 flex flex-col -mt-5">
       <div className="flex mb-4 border-b border-border">
         <button
-          className={`flex-1 py-2 px-4 text-sm font-medium ${
+          className={`flex-1 pb-2 px-4 text-sm font-medium ${
             activeTab === 'shapes'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -118,7 +118,7 @@ const ShapesPanel = ({ onDragStart }) => {
           Shapes
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm font-medium ${
+          className={`flex-1 pb-2 px-4 text-sm font-medium ${
             activeTab === 'arrows'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -138,7 +138,7 @@ const ShapesPanel = ({ onDragStart }) => {
                 onDragStart={(e) => handleDragStart(e, shape.id)}
                 className="flex flex-col items-center border border-border rounded hover:bg-gray-50 cursor-move"
               >
-                <div className="w-100 h-full mb-1">
+                <div className="w-100 h-full mb-1 ">
                   <canvas 
                     id={`preview-${shape.id}`} 
                     className='pointer-events-none'
@@ -155,7 +155,7 @@ const ShapesPanel = ({ onDragStart }) => {
                 onDragStart={(e) => handleDragStart(e, arrow.id)}
                 className="flex flex-col items-center  border border-border rounded hover:bg-gray-50 cursor-move"
               >
-                <div className="w-10 h-full mb-1">
+                <div className=" h-full mb-1">
                   <canvas 
                     id={`preview-${arrow.id}`} 
                     className='pointer-events-none'
@@ -458,26 +458,21 @@ const ARROWS = {
     stemWidthRatio: 0.2,
     diagonalStemWidthRatio: 0.2
   },
-  getArrowOptions: function(color) {
-    return {
-      fill: color,
-      stroke: color,
-      strokeWidth: 1,
-      transparentCorners: false,
-      cornerColor: color,
-      cornerSize: 10,
-      hasRotatingPoint: true,
-      originX: 'left',
-      originY: 'top',
-      objectCaching: false
-    };
-  },
-  darkenColor: function(hex, amount = 0.2) {
-    return hex;
-  },
-  rightArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  getArrowOptions: (color) => ({
+    fill: color,
+    stroke: color,
+    strokeWidth: 1,
+    transparentCorners: false,
+    cornerColor: color,
+    cornerSize: 10,
+    hasRotatingPoint: true,
+    originX: 'left',
+    originY: 'top',
+    objectCaching: false
+  }),
+  rightArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     
     const points = [
       { x: left, y: top + size/2 - stemWidth/2 },
@@ -489,11 +484,11 @@ const ARROWS = {
       { x: left, y: top + size/2 + stemWidth/2 }
     ];
     
-    return new Polygon(points, this.getArrowOptions(color));
+    return new Polygon(points, ARROWS.getArrowOptions(color));
   },
-  leftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  leftArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     
     const points = [
       { x: left + size, y: top + size/2 - stemWidth/2 },
@@ -505,11 +500,11 @@ const ARROWS = {
       { x: left + size, y: top + size/2 + stemWidth/2 }
     ];
     
-    return new Polygon(points, this.getArrowOptions(color));
+    return new Polygon(points, ARROWS.getArrowOptions(color));
   },
-  upArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  upArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     
     const points = [
       { x: left + size/2 - stemWidth/2, y: top + size },
@@ -521,11 +516,11 @@ const ARROWS = {
       { x: left + size/2 + stemWidth/2, y: top + size }
     ];
     
-    return new Polygon(points, this.getArrowOptions(color));
+    return new Polygon(points, ARROWS.getArrowOptions(color));
   },
-  downArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  downArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     
     const points = [
       { x: left + size/2 - stemWidth/2, y: top },
@@ -537,11 +532,11 @@ const ARROWS = {
       { x: left + size/2 + stemWidth/2, y: top }
     ];
     
-    return new Polygon(points, this.getArrowOptions(color));
+    return new Polygon(points, ARROWS.getArrowOptions(color));
   },
-  upRightArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  upRightArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     const halfStem = stemWidth / 2;
 
     const points = [
@@ -568,11 +563,11 @@ const ARROWS = {
       };
     });
 
-    return new Polygon(rotatedPoints, this.getArrowOptions(color));
+    return new Polygon(rotatedPoints, ARROWS.getArrowOptions(color));
   },
-  upLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  upLeftArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     const halfStem = stemWidth / 2;
 
     const points = [
@@ -600,11 +595,11 @@ const ARROWS = {
       };
     });
 
-    return new Polygon(rotatedPoints, this.getArrowOptions(color));
+    return new Polygon(rotatedPoints, ARROWS.getArrowOptions(color));
   },
-  downRightArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  downRightArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     const halfStem = stemWidth / 2;
 
     const points = [
@@ -632,11 +627,11 @@ const ARROWS = {
       };
     });
 
-    return new Polygon(rotatedPoints, this.getArrowOptions(color));
+    return new Polygon(rotatedPoints, ARROWS.getArrowOptions(color));
   },
-  downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color = this.config.defaultColor) {
-    const headLength = size * this.config.headLengthRatio;
-    const stemWidth = size * this.config.stemWidthRatio;
+  downLeftArrow: (left = 0, top = 0, size = ARROWS.config.defaultSize, color = ARROWS.config.defaultColor) => {
+    const headLength = size * ARROWS.config.headLengthRatio;
+    const stemWidth = size * ARROWS.config.stemWidthRatio;
     const halfStem = stemWidth / 2;
 
     const points = [
@@ -664,7 +659,7 @@ const ARROWS = {
       };
     });
 
-    return new Polygon(rotatedPoints, this.getArrowOptions(color));
+    return new Polygon(rotatedPoints, ARROWS.getArrowOptions(color));
   }
 };
 

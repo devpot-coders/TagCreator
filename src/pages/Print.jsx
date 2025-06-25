@@ -22,6 +22,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, HelpCircle } from "lucide-react";
+import PrintSettingsPopup from '../components/PrintSettingPopup';
+import { MdPictureAsPdf } from "react-icons/md";
+import { MdLocalPrintshop } from "react-icons/md";
+import axios from 'axios';
+import { Loader } from "./Loader";
+import Calculate from "../components/Calculate"
+
+
+
 
 // Reusable FilterDropdown Component
 const FilterDropdown = ({
@@ -338,38 +347,39 @@ const Print = () => {
   const [storeCombiner, setStoreCombiner] = useState("And");
   const [supplierCombiner, setSupplierCombiner] = useState("And");
   const [tagListCombiner, setTagListCombiner] = useState("And");
+  const [showCalculator, setShowCalculator] = useState(false);
+
+  const [infoModalMessage, setInfoModalMessage] = useState("");
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
+  const [showPrintSettingsPopup, setShowPrintSettingsPopup] = useState(false);
 
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const headerRefs = useRef({});
 
+  // Replace dummy categories and subCategories with state
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleAllCategorySubCategoryList = async () => {
+      try {
+        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/category/list.php?company_code=afhstXDev", {
+          params: { company_code: 'afhstXDev' }
+        });
+        // Set categories and subCategories from API response
+        setCategories(response.data.category.map(cat => cat.category_name));
+        setSubCategories(response.data.subCategory.map(sub => sub.sub_category_name));
+      } catch (error) {
+        console.error('Failed to fetch categories/subcategories', error);
+      }
+    };
+    handleAllCategorySubCategoryList();
+  }, []);
+
   // Dummy data for dropdowns
-  const categories = [
-    'Electronics',
-    'Clothing',
-    'Home & Kitchen',
-    'Beauty & Personal Care',
-    'Sports & Outdoors',
-    'Books & Stationery',
-    'Toys & Games',
-    'Health & Wellness',
-    'Automotive',
-    'Jewelry & Accessories'
-  ];
-
-  // Convert subCategories object to array for mapping
-  const subCategories = [
-    'Smartphones', 'Laptops', 'Tablets', 'Accessories', 'Audio Devices', 'Gaming Consoles',
-    'Men\'s Wear', 'Women\'s Wear', 'Kids\' Wear', 'Footwear', 'Winter Wear', 'Summer Collection',
-    'Furniture', 'Kitchen Appliances', 'Home Decor', 'Bedding', 'Bath', 'Lighting',
-    'Skincare', 'Makeup', 'Haircare', 'Fragrances', 'Personal Hygiene', 'Men\'s Grooming',
-    'Fitness Equipment', 'Sports Gear', 'Outdoor Gear', 'Team Sports', 'Yoga & Meditation',
-    'Fiction', 'Non-Fiction', 'Educational', 'Office Supplies', 'Art Supplies', 'Gift Items',
-    'Educational Toys', 'Action Figures', 'Board Games', 'Puzzles', 'Outdoor Toys', 'Video Games',
-    'Vitamins & Supplements', 'Medical Devices', 'Fitness Trackers', 'Health Monitors', 'First Aid',
-    'Car Accessories', 'Car Care', 'Motorcycle Parts', 'Tools & Equipment', 'GPS & Navigation',
-    'Necklaces', 'Earrings', 'Watches', 'Bags & Wallets', 'Sunglasses', 'Belts'
-  ];
-
   const stores = [
     'Mega Mall - Downtown',
     'City Center Plaza',
@@ -401,110 +411,39 @@ const Print = () => {
     'Outdoor Adventure Gear'
   ];
 
-  // Dummy table data (you'll replace this with real data)
-  const tableData = [
-    {
-      id: 1,
-      bc: 'BC-101',
-      itemId: 'ITEM-101',
-      description: 'iPhone 13 Pro Max',
-      mainCategory: 'Electronics',
-      subCategory: 'Smartphones',
-      store: 'Mega Mall - Downtown',
-      supplier: 'Global Electronics Ltd.'
-    },
-    {
-      id: 2,
-      bc: 'BC-102',
-      itemId: 'ITEM-102',
-      description: 'Men\'s Casual Shirt',
-      mainCategory: 'Clothing',
-      subCategory: 'Men\'s Wear',
-      store: 'City Center Plaza',
-      supplier: 'Fashion Forward Inc.'
-    },
-    {
-      id: 3,
-      bc: 'BC-103',
-      itemId: 'ITEM-103',
-      description: 'Smart LED TV 55"',
-      mainCategory: 'Electronics',
-      subCategory: 'Accessories',
-      store: 'Westside Shopping Complex',
-      supplier: 'Smart Tech Solutions'
-    },
-    {
-      id: 4,
-      bc: 'BC-104',
-      itemId: 'ITEM-104',
-      description: 'Kitchen Mixer Grinder',
-      mainCategory: 'Home & Kitchen',
-      subCategory: 'Kitchen Appliances',
-      store: 'Eastside Retail Park',
-      supplier: 'Kitchen Master Supplies'
-    },
-    {
-      id: 5,
-      bc: 'BC-105',
-      itemId: 'ITEM-105',
-      description: 'Premium Skincare Set',
-      mainCategory: 'Beauty & Personal Care',
-      subCategory: 'Skincare',
-      store: 'Northside Mall',
-      supplier: 'Beauty World International'
-    },
-    {
-      id: 6,
-      bc: 'BC-106',
-      itemId: 'ITEM-106',
-      description: 'Yoga Mat Premium',
-      mainCategory: 'Sports & Outdoors',
-      subCategory: 'Yoga & Meditation',
-      store: 'Southside Shopping Center',
-      supplier: 'Outdoor Adventure Gear'
-    },
-    {
-      id: 7,
-      bc: 'BC-107',
-      itemId: 'ITEM-107',
-      description: 'Best Seller Novel',
-      mainCategory: 'Books & Stationery',
-      subCategory: 'Fiction',
-      store: 'Metro Retail Hub',
-      supplier: 'Book Haven Publishers'
-    },
-    {
-      id: 8,
-      bc: 'BC-108',
-      itemId: 'ITEM-108',
-      description: 'Educational Building Blocks',
-      mainCategory: 'Toys & Games',
-      subCategory: 'Educational Toys',
-      store: 'Grand Plaza Mall',
-      supplier: 'Toy Kingdom Corp'
-    },
-    {
-      id: 9,
-      bc: 'BC-109',
-      itemId: 'ITEM-109',
-      description: 'Digital Blood Pressure Monitor',
-      mainCategory: 'Health & Wellness',
-      subCategory: 'Health Monitors',
-      store: 'Central Market',
-      supplier: 'Health Plus Suppliers'
-    },
-    {
-      id: 10,
-      bc: 'BC-110',
-      itemId: 'ITEM-110',
-      description: 'Car GPS Navigation System',
-      mainCategory: 'Automotive',
-      subCategory: 'GPS & Navigation',
-      store: 'Premium Outlets',
-      supplier: 'Auto Parts Direct'
-    }
-     
-  ];
+  // Replace dummy table data with API data
+  const [tableData, setTableData] = useState([]);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=afhstXDev", {
+          params: { company_code: 'afhstXDev' }
+        });
+        // Map API data to table columns
+        const mapped = (response.data.records || []).map((item, idx) => ({
+          id: item.inventory_id || idx,
+          bc: item.inventory_id || '',
+          itemId: item.item_id || '',
+          description: item.description_1 || item.description_2 || '',
+          mainCategory: item.main_category_name || '',
+          subCategory: item.sub_category_name || '',
+          store: item.store_name || '',
+          supplier: item.supplier_name || '',
+        }));
+        setTableData(mapped);
+        setFilteredData(mapped);
+      } catch (error) {
+        setTableData([]);
+        setFilteredData([]);
+        console.error('Failed to fetch inventory', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInventory();
+  }, []);
 
   // Get unique values
   const uniqueBcs = Array.from(new Set(tableData.map((item) => item.bc)));
@@ -536,32 +475,59 @@ const Print = () => {
   // Add filteredData state
   const [filteredData, setFilteredData] = useState(tableData);
 
+  // Add new state for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: null
+  });
+
+  // Add sort handler
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...filteredData].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredData(sortedData);
+  };
+
   // Update the handleFilter function to include both top dropdowns and column filters
   const handleFilter = useCallback(() => {
     let currentFilteredList = tableData;
 
     // Apply top dropdown filters
-    if (selectedCategories.size > 0) {
+    if (selectedCategories.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedCategories.has(item.mainCategory)
+        selectedCategories.includes(item.mainCategory)
       );
     }
 
-    if (selectedSubCategories.size > 0) {
+    if (selectedSubCategories.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedSubCategories.has(item.subCategory)
+        selectedSubCategories.includes(item.subCategory)
       );
     }
 
-    if (selectedStores.size > 0) {
+    if (selectedStores.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedStores.has(item.store)
+        selectedStores.includes(item.store)
       );
     }
 
-    if (selectedSuppliers.size > 0) {
+    if (selectedSuppliers.length > 0) {
       currentFilteredList = currentFilteredList.filter(item =>
-        selectedSuppliers.has(item.supplier)
+        selectedSuppliers.includes(item.supplier)
       );
     }
 
@@ -920,6 +886,10 @@ const Print = () => {
     }
   };
 
+  const handleCloseInfoModal = () => {
+    setShowInfoModal(false);
+  };
+
   // Handle items per page change
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
@@ -932,6 +902,22 @@ const Print = () => {
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
+
+  // Handle closing the print settings popup
+  const handleClosePrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(false);
+  }, []);
+
+  // Handle saving print settings (you can implement actual save logic here)
+  const handleSavePrintSettings = useCallback((settings) => {
+    console.log("Saved Print Settings:", settings);
+    // Here you would typically send these settings to a backend or use them locally
+    // For now, we'll just log them to the console.
+  }, []);
+
+  const handleOpenPrintSettings = useCallback(() => {
+    setShowPrintSettingsPopup(true);
+  }, []);
 
   const handleSelectAll = () => {
     setSelectedItems((prev) =>
@@ -1098,6 +1084,9 @@ const Print = () => {
     setCurrentPage(1);
   }, [tableData]);
 
+
+  
+
   const handleCloseDropdown = useCallback((dropdownType) => {
     switch (dropdownType) {
       case "bc":
@@ -1140,6 +1129,25 @@ const Print = () => {
     }
   };
 
+
+const handleOpenCalculator = () => {
+    if (selectedItems.length === 0) {
+      setInfoModalMessage("No records selected / available to merge");
+      setShowInfoModal(true);
+      return;
+    }
+    setShowCalculator(true);
+  };
+
+  const handleCloseCalculator = () => {
+    setShowCalculator(false);
+  };
+
+  const handleSaveCalculator = (calculations) => {
+    console.log("Saved Field Calculations from Header:", calculations);
+    setShowCalculator(false);
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       if (bcFilterDropdown) updateDropdownPosition("bc");
@@ -1165,6 +1173,7 @@ const Print = () => {
     tagListFilterDropdown,
   ]);
 
+  
   const MemoizedSortableHeader = React.memo(({ label, columnKey }) => {
     return (
       <th
@@ -1207,8 +1216,20 @@ const Print = () => {
         >
           {label}
           <div className="flex flex-col">
-            <FaSortUp className="text-xs -mb-1" />
-            <FaSortDown className="text-xs -mt-1" />
+            <FaSortUp 
+              className={`text-xs -mb-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'ascending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
+            <FaSortDown 
+              className={`text-xs -mt-1 cursor-pointer ${sortConfig.key === columnKey && sortConfig.direction === 'descending' ? 'text-blue-500' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSort(columnKey);
+              }}
+            />
           </div>
         </div>
       </th>
@@ -1432,6 +1453,8 @@ const Print = () => {
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   };
+
+  
 
   const handleSelectAllCategories = () => {
     setSelectedCategories((prev) =>
@@ -1890,7 +1913,7 @@ const Print = () => {
       </div>
 
       {/* Table */}
-      <div className="border border-gray-300 rounded bg-white shadow-md overflow-hidden mb-4">
+      <div className="border border-gray-300 rounded bg-white shadow-md overflow-hidden overflow-x-scroll w-[93%] m-auto mb-4">
         <table className="w-full text-sm table-auto">
           <thead className="bg-gray-100">
             <tr>
@@ -1905,39 +1928,51 @@ const Print = () => {
             </tr>
           </thead>
           <tbody>
-            {currentItems.map((item, index) => (
-              <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(item.id)}
-                    onChange={() => handleCheckboxChange(item.id)}
-                    className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.bc}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.itemId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.description}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.mainCategory}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.subCategory}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.store}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.supplier}
+            {loading ? (
+              <tr>
+                <td colSpan="8">
+                  <Loader />
                 </td>
               </tr>
-            ))}
+            ) : currentItems.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-8 text-gray-500 font-medium">No data found</td>
+              </tr>
+            ) : (
+              currentItems.map((item, index) => (
+                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => handleCheckboxChange(item.id)}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.bc}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.itemId}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.mainCategory}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.subCategory}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.store}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.supplier}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -2047,27 +2082,42 @@ const Print = () => {
       <div className="flex justify-center gap-4 mt-6 bg-orange-100 w-[53%] p-1 m-auto">
         <div className=" p-2">
           <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiPrinter /> Print Selected
+            <FiPrinter /> Preview
+          </button>
+        </div>
+        <div className="bg-orange-100 p-2">
+          <button onClick={handleOpenCalculator} className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
+            <MdPictureAsPdf /> Create PDF
           </button>
         </div>
         <div className="bg-orange-100 p-2">
           <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiPrinter /> Print All
-          </button>
-        </div>
-        <div className="bg-orange-100 p-2">
-          <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
-            <FiTrash2 /> Delete Selected
+            <MdLocalPrintshop /> Print
           </button>
         </div>
         <div className="bg-orange-100 p-2">
           <button
+          onClick={handleOpenPrintSettings}
             className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300"
           >
             <FiSettings /> Settings
           </button>
         </div>
+
+        <Calculate
+          isOpen={showCalculator}
+          onClose={handleCloseCalculator}
+          onSave={handleSaveCalculator}
+        />
       </div>
+
+      
+
+      <PrintSettingsPopup 
+        isOpen={showPrintSettingsPopup} 
+        onClose={handleClosePrintSettings} 
+        onSave={handleSavePrintSettings}
+      />
 
       {/* Render dropdowns */}
       {renderDropdown("bc")}
@@ -2078,7 +2128,34 @@ const Print = () => {
       {renderDropdown("store")}
       {renderDropdown("supplier")}
       {renderDropdown("tagList")}
+
+
+{showInfoModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-[1000]">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-sm border border-gray-300">
+            {/* Header */}
+            <div className="flex justify-end p-1 border-b border-gray-300 bg-gray-100 rounded-t-lg">
+              <button onClick={handleCloseInfoModal} className="text-gray-500 hover:text-gray-700 text-xl leading-none px-2 py-1 focus:outline-none">
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 flex flex-col items-center justify-center text-center">
+              <p className="text-gray-700 mb-6 text-lg">{infoModalMessage}</p>
+              <button 
+                onClick={handleCloseInfoModal}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-4 rounded shadow-sm border border-gray-400"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
     </div>
+    
   );
 };
 
