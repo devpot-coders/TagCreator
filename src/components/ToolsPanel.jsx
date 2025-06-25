@@ -82,170 +82,130 @@ export const ToolsPanel = ({
           <DropdownMenuLabel className="sticky top-0 z-10 bg-gray-800 text-white">Insert Field</DropdownMenuLabel>
           <DropdownMenuGroup>
             {/* Existing fields */}
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('barcode');
-            }}>Barcode</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('qrcode');
-            }}>QR Code</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('date');
-            }}>Date</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('id');
-            }}>ID</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('itemId');
-            }}>Item ID</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('modelNumber');
-            }}>Model Number</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('descriptionA');
-            }}>Description A</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('descriptionB');
-            }}>Description B</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('supplierName');
-            }}>Supplier Name</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('itemType');
-            }}>Item Type</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('mainCategory');
-            }}>Main Category Name</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('subCategory');
-            }}>Sub Category Name</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('landedCost');
-            }}>Landed Cost</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('barcode')}>
+              Barcode
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('qrcode')}>
+              QR Code
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('date')}>
+              Date
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('id')}>
+              ID
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('itemId')}>
+              Item ID
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('modelNumber')}>
+              Model Number
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('descriptionA')}>
+              Description A
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('descriptionB')}>
+              Description B
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('supplierName')}>
+              Supplier Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('itemType')}>
+              Item Type
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('mainCategory')}>
+              Main Category Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('subCategory')}>
+              Sub Category Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('landedCost')}>
+              Landed Cost
+            </DropdownMenuItem>
 
             {/* Fields from first screenshot */}
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('price1');
-            }}>Price 1</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('price2');
-            }}>Price 2</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('price3');
-            }}>Price 3</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('statusType');
-            }}>Status Type</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('qty');
-            }}>Qty</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('imageUrl');
-            }}>Image URL</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('dimensions');
-            }}>Dimensions</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageId');
-            }}>Package ID</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageItems');
-            }}>Package Items</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('pay36m');
-            }}>Pay 36M</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('pay48m');
-            }}>Pay 48M</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('pay60m');
-            }}>Pay 60M</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('price1')}>
+              Price 1
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('price2')}>
+              Price 2
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('price3')}>
+              Price 3
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('statusType')}>
+              Status Type
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('qty')}>
+              Qty
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('imageUrl')}>
+              Image URL
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('dimensions')}>
+              Dimensions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageId')}>
+              Package ID
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageItems')}>
+              Package Items
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('pay36m')}>
+              Pay 36M
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('pay48m')}>
+              Pay 48M
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('pay60m')}>
+              Pay 60M
+            </DropdownMenuItem>
 
             {/* Fields from second screenshot */}
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageName');
-            }}>Package Name</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageDescA');
-            }}>Package Desc A</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageDescB');
-            }}>Package Desc B</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePrice1');
-            }}>Package Price 1</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePrice2');
-            }}>Package Price 2</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePrice3');
-            }}>Package Price 3</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageImageUrl');
-            }}>Package Image URL</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePay36m');
-            }}>Package Pay 36M</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePay48m');
-            }}>Package Pay 48M</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packagePay60m');
-            }}>Package Pay 60M</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('packageDimensions');
-            }}>Package Dimensions</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('locBcl');
-            }}>Loc Bcl#</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('notes');
-            }}>Notes</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('location');
-            }}>Location</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              onToolChange('field');
-              onToolChange('stockId');
-            }}>Stock Id</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageName')}>
+              Package Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageDescA')}>
+              Package Desc A
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageDescB')}>
+              Package Desc B
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePrice1')}>
+              Package Price 1
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePrice2')}>
+              Package Price 2
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePrice3')}>
+              Package Price 3
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageImageUrl')}>
+              Package Image URL
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePay36m')}>
+              Package Pay 36M
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePay48m')}>
+              Package Pay 48M
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packagePay60m')}>
+              Package Pay 60M
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('packageDimensions')}>
+              Package Dimensions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('locBcl')}>
+              Loc Bcl#
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('notes')}>
+              Notes
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('location')}>
+              Location
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToolChange('stockId')}>
+              Stock Id
+            </DropdownMenuItem>
           </DropdownMenuGroup>
 
         </DropdownMenuContent>

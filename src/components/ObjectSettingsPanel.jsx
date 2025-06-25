@@ -37,6 +37,26 @@ import {
   //   SquareStack,
 } from "lucide-react";
 
+// Utility to get the correct target for style/text changes
+function getTargetTextObject(selectedObject) {
+  if (
+    selectedObject &&
+    selectedObject.type === 'group' &&
+    selectedObject.getObjects().length === 2 &&
+    selectedObject.getObjects()[0].type === 'textbox' &&
+    selectedObject.getObjects()[0].text === '$' &&
+    selectedObject.getObjects()[1].type === 'textbox'
+  ) {
+    // Price group: always use the second textbox (the price value)
+    return selectedObject.getObjects()[1];
+  }
+  // For other groups, fallback to first textbox, else self
+  if (selectedObject && selectedObject.type === 'group') {
+    return selectedObject.getObjects().find(obj => obj.type === 'textbox') || selectedObject;
+  }
+  return selectedObject;
+}
+
 const ObjectSettingsPanel = ({
   fabricCanvas,
   selectedObject,
@@ -573,6 +593,26 @@ const ObjectSettingsPanel = ({
       });
         break;
 
+      case 'textbox':
+        pastedObject = new fabric.Textbox(clipboard.text, {
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          width: clipboard.width,
+          height: clipboard.height,
+          fontSize: clipboard.fontSize,
+          fill: clipboard.fill,
+          fontFamily: clipboard.fontFamily,
+          fontWeight: clipboard.fontWeight,
+          textAlign: clipboard.textAlign,
+          // add more properties as needed, but do NOT include 'type'
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+
+
         default:
           // For any other type, try to use enlivenObjects as a fallback
           console.log("default")
@@ -800,10 +840,7 @@ const ObjectSettingsPanel = ({
 
   const handleColorChange = (color) => {
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       targetObject.set({
         fill: color,
         stroke: color,
@@ -816,10 +853,7 @@ const ObjectSettingsPanel = ({
 
   const handleStrokeColorChange = (color) => {
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       targetObject.set({
         stroke: color
       });
@@ -830,10 +864,7 @@ const ObjectSettingsPanel = ({
 
   const handleGradientChange = (colors) => {
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       try {
         // Get the scaled dimensions of the object
         const scaledWidth = targetObject.getScaledWidth();
@@ -865,10 +896,7 @@ const ObjectSettingsPanel = ({
 
   const handleOpacityChange = (value) => {
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       const newOpacity = parseFloat(value);
       targetObject.set({
         opacity: newOpacity
@@ -882,10 +910,7 @@ const ObjectSettingsPanel = ({
     const newWidth = e.target.value;
     setStrokeWidth(newWidth);
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       targetObject.set("strokeWidth", parseFloat(newWidth));
       fabricCanvas.requestRenderAll();
     }
@@ -894,10 +919,7 @@ const ObjectSettingsPanel = ({
   const handleStrokeDashArrayChange = (e) => {
     const newDashArray = JSON.parse(e.target.value);
     if (selectedObject) {
-      let targetObject = selectedObject;
-      if (selectedObject.type === 'group' && selectedObject.getObjects().length > 0) {
-        targetObject = selectedObject.getObjects()[0];
-      }
+      let targetObject = getTargetTextObject(selectedObject);
       targetObject.set({
         strokeDashArray: newDashArray
       });
@@ -911,13 +933,7 @@ const ObjectSettingsPanel = ({
     setTextValue(newText);
     console.log("handleTextInputChange called. newText:", newText);
     console.log("selectedObject:", selectedObject);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
-
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('text', newText);
       fabricCanvas.requestRenderAll();
@@ -930,12 +946,7 @@ const ObjectSettingsPanel = ({
   const handleFontFamilyChange = (e) => {
     const newFontFamily = e.target.value;
     setFontFamily(newFontFamily);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('fontFamily', newFontFamily);
       fabricCanvas.requestRenderAll();
@@ -945,12 +956,7 @@ const ObjectSettingsPanel = ({
   const handleFontSizeChange = (e) => {
     const newFontSize = parseFloat(e.target.value);
     setFontSize(newFontSize);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('fontSize', newFontSize);
       fabricCanvas.requestRenderAll();
@@ -960,12 +966,7 @@ const ObjectSettingsPanel = ({
   const handleBoldToggle = () => {
     const newIsBold = !isBold;
     setIsBold(newIsBold);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('fontWeight', newIsBold ? 'bold' : 'normal');
       fabricCanvas.requestRenderAll();
@@ -975,12 +976,7 @@ const ObjectSettingsPanel = ({
   const handleItalicToggle = () => {
     const newIsItalic = !isItalic;
     setIsItalic(newIsItalic);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('fontStyle', newIsItalic ? 'italic' : 'normal');
       fabricCanvas.requestRenderAll();
@@ -989,12 +985,7 @@ const ObjectSettingsPanel = ({
 
   const handleTextAlignChange = (alignment) => {
     setTextAlign(alignment);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('textAlign', alignment);
       fabricCanvas.requestRenderAll();
@@ -1003,12 +994,7 @@ const ObjectSettingsPanel = ({
 
   const handleTextColorChange = (color) => {
     setTextColor(color);
-    let textObject = null;
-    if (selectedObject && selectedObject.type === 'group') {
-      textObject = selectedObject.getObjects().find(obj => obj.type === 'textbox');
-    } else if (selectedObject && (selectedObject.type === 'text' || selectedObject.type === 'i-text' || selectedObject.type === 'textbox')) {
-      textObject = selectedObject;
-    }
+    let textObject = getTargetTextObject(selectedObject);
     if (textObject) {
       textObject.set('fill', color);
       fabricCanvas.requestRenderAll();

@@ -12,6 +12,7 @@ const AuthService = {
   },
 
   // Login with email/password
+
 async login(ClientCode, UserName, Password) {
   try {
     const response = await apiClient.post(
@@ -20,6 +21,7 @@ async login(ClientCode, UserName, Password) {
     );
     localStorage.setItem("token", response.data.data);
     this.setAuthTokens(response.data.data);
+
 
     return { success: true, status: response.status, data: response.data };
   } catch (error) {

@@ -12,6 +12,7 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
   const [actionDropdownOpenForIndex, setActionDropdownOpenForIndex] = useState(null);
   const [actionDropdownPosition, setActionDropdownPosition] = useState({ top: 0, left: 0 });
   const [editingValueIndex, setEditingValueIndex] = useState(null);
+  const [byValue, setByValue] = useState('');
 
   const [sortConfig, setSortConfig] = useState({
     key: null,
@@ -324,138 +325,140 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
     );
 
     return (
-      <div
-        ref={dropdownRef}
-        className="absolute z-[9999] bg-gray-100 border-gray-300 shadow rounded p-2 w-[250px] border-2"
-        style={{
-          top: `${filterDropdownPosition.top}px`,
-          left: `${filterDropdownPosition.left}px`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={currentFilterState.selectedItems.length === itemsToDisplay.length && itemsToDisplay.length > 0}
-              onChange={() => handleSelectAll(columnName, itemsToDisplay)}
-              className="mr-2 h-4 w-4 shadow-sm"
-            />
-            <span className="">Select All</span>
-          </div>
-          <button
-            onClick={() => {
-              setShowFieldFilterDropdown(false);
-              setShowActionFilterDropdown(false);
-              setShowByValueFilterDropdown(false);
-            }}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            &times;
-          </button>
-        </div>
-
-        <div className="max-h-32 overflow-y-auto mb-2 border p-2">
-          {itemsToDisplay.map((item) => (
-            <div key={item} className="flex items-center mb-1">
+      <div>
+        <div
+          ref={dropdownRef}
+          className="absolute z-[9999] bg-gray-100 border-gray-300 shadow rounded p-2 w-[250px] border-2"
+          style={{
+            top: `${filterDropdownPosition.top}px`,
+            left: `${filterDropdownPosition.left}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center">
               <input
                 type="checkbox"
-                checked={currentFilterState.selectedItems.includes(item)}
-                onChange={() => handleItemSelect(columnName, item)}
-                className="mr-2 h-4 w-4"
+                checked={currentFilterState.selectedItems.length === itemsToDisplay.length && itemsToDisplay.length > 0}
+                onChange={() => handleSelectAll(columnName, itemsToDisplay)}
+                className="mr-2 h-4 w-4 shadow-sm"
               />
-              <span className="font-normal text-gray-800">{item}</span>
+              <span className="">Select All</span>
             </div>
-          ))}
-        </div>
+            <button
+              onClick={() => {
+                setShowFieldFilterDropdown(false);
+                setShowActionFilterDropdown(false);
+                setShowByValueFilterDropdown(false);
+              }}
+              className="text-gray-500 hover:text-gray-700 text-2xl"
+            >
+              &times;
+            </button>
+          </div>
 
-        <div className="mt-4 pt-2 border-t border-gray-300">
-          <h3 className="font-normal mb-2 text-gray-700">Show rows with value that</h3>
-          <div className="flex flex-col gap-2">
-            <div className="items-center gap-2 ">
-              <select
-                className="border rounded p-1 w-full text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none"
-                value={currentFilterState.condition1}
-                onChange={(e) => updateFilterState(columnName, 'condition1', e.target.value)}
-              >
-                <option>Is equal to</option>
-                <option>Does not equal</option>
-                <option>Contains</option>
-                <option>Does not contain</option>
-                <option>Starts with</option>
-                <option>Ends with</option>
-              </select>
-              <div className="flex items-center gap-2 mt-2">
+          <div className="max-h-32 overflow-y-auto mb-2 border p-2">
+            {itemsToDisplay.map((item) => (
+              <div key={item} className="flex items-center mb-1">
                 <input
-                  type="text"
-                  className="border border-blue-400 focus:outline-none rounded p-1 flex-1 text-sm bg-white text-gray-800"
-                  value={currentFilterState.searchQuery1}
-                  onChange={(e) => updateFilterState(columnName, 'searchQuery1', e.target.value)}
+                  type="checkbox"
+                  checked={currentFilterState.selectedItems.includes(item)}
+                  onChange={() => handleItemSelect(columnName, item)}
+                  className="mr-2 h-4 w-4"
                 />
-                <button
-                  onClick={() => handleFilterClick(columnName)}
-                  className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded"
-                >
-                  aA
-                </button>
+                <span className="font-normal text-gray-800">{item}</span>
               </div>
-            </div>
+            ))}
+          </div>
 
-            <div className="flex items-center gap-2 mt-2">
-              <select
-                className="border rounded p-1 text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none w-full"
-                value={currentFilterState.combiner}
-                onChange={(e) => updateFilterState(columnName, 'combiner', e.target.value)}
-              >
-                <option>And</option>
-                <option>Or</option>
-              </select>
-            </div>
-
-            <div className="items-center gap-2 mt-2">
-              <select
-                className="border rounded p-1 text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none w-full"
-                value={currentFilterState.condition2}
-                onChange={(e) => updateFilterState(columnName, 'condition2', e.target.value)}
-              >
-                <option>Is equal to</option>
-                <option>Does not equal</option>
-                <option>Contains</option>
-                <option>Does not contain</option>
-                <option>Starts with</option>
-                <option>Ends with</option>
-              </select>
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="text"
-                  className="border border-blue-400 focus:outline-none rounded p-1 flex-1 text-sm bg-white text-gray-800"
-                  value={currentFilterState.searchQuery2}
-                  onChange={(e) => updateFilterState(columnName, 'searchQuery2', e.target.value)}
-                />
-                <button
-                  onClick={() => handleFilterClick(columnName)}
-                  className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded"
+          <div className="mt-4 pt-2 border-t border-gray-300">
+            <h3 className="font-normal mb-2 text-gray-700">Show rows with value that</h3>
+            <div className="flex flex-col gap-2">
+              <div className="items-center gap-2 ">
+                <select
+                  className="border rounded p-1 w-full text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none"
+                  value={currentFilterState.condition1}
+                  onChange={(e) => updateFilterState(columnName, 'condition1', e.target.value)}
                 >
-                  aA
-                </button>
+                  <option>Is equal to</option>
+                  <option>Does not equal</option>
+                  <option>Contains</option>
+                  <option>Does not contain</option>
+                  <option>Starts with</option>
+                  <option>Ends with</option>
+                </select>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="text"
+                    className="border border-blue-400 focus:outline-none rounded p-1 flex-1 text-sm bg-white text-gray-800"
+                    value={currentFilterState.searchQuery1}
+                    onChange={(e) => updateFilterState(columnName, 'searchQuery1', e.target.value)}
+                  />
+                  <button
+                    onClick={() => handleFilterClick(columnName)}
+                    className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded"
+                  >
+                    aA
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <select
+                  className="border rounded p-1 text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none w-full"
+                  value={currentFilterState.combiner}
+                  onChange={(e) => updateFilterState(columnName, 'combiner', e.target.value)}
+                >
+                  <option>And</option>
+                  <option>Or</option>
+                </select>
+              </div>
+
+              <div className="items-center gap-2 mt-2">
+                <select
+                  className="border rounded p-1 text-sm bg-gradient-to-b from-gray-200 to-gray-400 focus:outline-none w-full"
+                  value={currentFilterState.condition2}
+                  onChange={(e) => updateFilterState(columnName, 'condition2', e.target.value)}
+                >
+                  <option>Is equal to</option>
+                  <option>Does not equal</option>
+                  <option>Contains</option>
+                  <option>Does not contain</option>
+                  <option>Starts with</option>
+                  <option>Ends with</option>
+                </select>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="text"
+                    className="border border-blue-400 focus:outline-none rounded p-1 flex-1 text-sm bg-white text-gray-800"
+                    value={currentFilterState.searchQuery2}
+                    onChange={(e) => updateFilterState(columnName, 'searchQuery2', e.target.value)}
+                  />
+                  <button
+                    onClick={() => handleFilterClick(columnName)}
+                    className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded"
+                  >
+                    aA
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end space-x-4 mt-4">
-          <button
-            onClick={() => handleFilterClick(columnName)}
-            className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
-          >
-            Filter
-          </button>
-          <button
-            onClick={() => handleClearFilterClick(columnName)}
-            className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
-          >
-            Clear Filter
-          </button>
+          <div className="flex justify-end space-x-4 mt-4">
+            <button
+              onClick={() => handleFilterClick(columnName)}
+              className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
+            >
+              Filter
+            </button>
+            <button
+              onClick={() => handleClearFilterClick(columnName)}
+              className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
+            >
+              Clear Filter
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -472,24 +475,26 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
     };
 
     return (
-      <div
-        ref={actionSelectDropdownRef}
-        className="absolute z-[9999] bg-gray-100 border-gray-300 shadow rounded p-2 w-[150px] border-2"
-        style={{
-          top: `${actionDropdownPosition.top}px`,
-          left: `${actionDropdownPosition.left}px`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {actions.map((action) => (
-          <div
-            key={action}
-            className={`p-1 cursor-pointer hover:bg-gray-200 ${currentAction === action ? 'bg-gray-200' : ''}`}
-            onClick={() => handleActionSelect(action)}
-          >
-            {action}
-          </div>
-        ))}
+      <div>
+        <div
+          ref={actionSelectDropdownRef}
+          className="absolute z-[9999] bg-gray-100 border-gray-300 shadow rounded p-2 w-[150px] border-2"
+          style={{
+            top: `${actionDropdownPosition.top}px`,
+            left: `${actionDropdownPosition.left}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {actions.map((action) => (
+            <div
+              key={action}
+              className={`p-1 cursor-pointer hover:bg-gray-200 ${currentAction === action ? 'bg-gray-200' : ''}`}
+              onClick={() => handleActionSelect(action)}
+            >
+              {action}
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -584,24 +589,24 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
 
         {/* Table Rows */}
         <div className="space-y-2 mt-2">
-          {filteredData.map((item, index) => (
-            <div key={index} className="grid grid-cols-3 gap-4 py-2 border-b border-gray-200">
+          {filteredData.map((item) => (
+            <div key={item.field} className="grid grid-cols-3 gap-4 py-2 border-b border-gray-200">
               <div>{item.field}</div>
               <div
                 className="cursor-pointer hover:bg-gray-200 p-2 -my-2 -mx-2 rounded"
-                onClick={(e) => handleActionCellClick(index, e)}
+                onClick={(e) => handleActionCellClick(filteredData.findIndex(i => i.field === item.field), e)}
               >
                 {item.action}
               </div>
               {
-                editingValueIndex === index ? (
+                editingValueIndex === filteredData.findIndex(i => i.field === item.field) ? (
                   <input
                     type="text"
                     className="border border-blue-400 focus:outline-none rounded p-1 flex-1 text-sm bg-white text-gray-800"
                     value={item.value}
                     onChange={(e) => {
                       const updatedData = [...filteredData];
-                      updatedData[index].value = e.target.value;
+                      updatedData[filteredData.findIndex(i => i.field === item.field)].value = e.target.value;
                       setFilteredData(updatedData);
                     }}
                     onBlur={() => setEditingValueIndex(null)}
@@ -610,7 +615,7 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
                 ) : (
                   <div
                     className="cursor-pointer hover:bg-gray-200 p-2 -my-2 -mx-2 rounded"
-                    onClick={() => setEditingValueIndex(index)}
+                    onClick={() => setEditingValueIndex(filteredData.findIndex(i => i.field === item.field))}
                   >
                     {item.value}
                   </div>
@@ -623,29 +628,46 @@ const Calculate = ({ isOpen, onClose, onSave }) => {
         {/* Save Button */}
         <div className="flex justify-center mt-6">
           <button 
-            onClick={() => onSave({ /* pass calculation data here */ })}
+            onClick={() => {
+              // Build a priceData object from filteredData
+              const priceData = {};
+              filteredData.forEach(row => {
+                // Normalize field names to match placeholders, e.g. {price1}, {pay36m}
+                const key = row.field
+                  .toLowerCase()
+                  .replace(/\s+/g, '')    // Remove spaces
+                  .replace('price', 'price') // Keep price as is
+                  .replace('pay', 'pay');    // Keep pay as is
+                priceData[key] = row.value;
+              });
+              onSave(priceData);
+            }}
             className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
           >
-            Save
+            Continue
           </button>
         </div>
       </div>
 
       {showFieldFilterDropdown && createPortal(
         renderFilterDropdown('Field'),
-        document.body
+        document.body,
+        'field-filter-portal'
       )}
       {showActionFilterDropdown && createPortal(
         renderFilterDropdown('Action'),
-        document.body
+        document.body,
+        'action-filter-portal'
       )}
       {showByValueFilterDropdown && createPortal(
         renderFilterDropdown('ByValue'),
-        document.body
+        document.body,
+        'byvalue-filter-portal'
       )}
       {actionDropdownOpenForIndex !== null && createPortal(
         renderActionSelectDropdown(actionDropdownOpenForIndex, filteredData[actionDropdownOpenForIndex].action),
-        document.body
+        document.body,
+        `action-select-portal-${actionDropdownOpenForIndex}`
       )}
     </div>
   );
