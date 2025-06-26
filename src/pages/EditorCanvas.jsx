@@ -317,7 +317,7 @@ function EditorCanvas() {
   const handleToolChange = (tool, value, fillColor) => {
     console.log('Tool change:', tool, value);
     setActiveTool(tool);
-    
+      
     if (tool === "image") {
       console.log('Setting selected image:', value);
       setSelectedImage(value);
@@ -492,6 +492,32 @@ function EditorCanvas() {
         });
         break;
       }
+      case 'textbox': {
+        const { text, type, version, ...options } = clipboard;
+        pastedObject = new fabric.Textbox(text, {
+          ...options,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
+      case 'text': {
+        const { text, type, version, ...options } = clipboard;
+        pastedObject = new fabric.Text(text, {
+          ...options,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
       case 'image':
         // For images, we need to load the image first
         if (!clipboard.src) {
@@ -554,18 +580,6 @@ function EditorCanvas() {
 
       case 'circle':
         pastedObject = new fabric.Circle({
-          ...clipboard,
-          left: (clipboard.left || 0) + offset,
-          top: (clipboard.top || 0) + offset,
-          evented: true,
-          selectable: true,
-          hasControls: true,
-          hasBorders: true,
-        });
-        break;
-
-      case 'text':
-        pastedObject = new fabric.Text(clipboard.text, {
           ...clipboard,
           left: (clipboard.left || 0) + offset,
           top: (clipboard.top || 0) + offset,
@@ -951,6 +965,7 @@ function EditorCanvas() {
                 variant="outline"
                 className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
                 onClick={handlePrint}
+                // onClick={handleExportPDF}
               >
                 <Printer className="scale-150" color="black" />
               </Button>
@@ -1009,7 +1024,9 @@ function EditorCanvas() {
                 onRulerMouseMove={(y) => handleRulerMouseMove(y, "y")}
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
-              <div className="flex-1 flex justify-center canvas-container-wrapper">
+              <div className="flex-1 flex justify-center canvas-container-wrapper"
+              //  ref={designCanvasRef}
+               >
                 <DesignCanvas
                   activeTool={activeTool}
                   canvasSize={canvasSize}
