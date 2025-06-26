@@ -45,7 +45,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setErrors({});
+
 
     try {
       await LoginValidation.validate(formData, { abortEarly: false });

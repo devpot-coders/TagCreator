@@ -23,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { OrientationDialog } from "./OrientationDialog";
 
@@ -36,6 +36,31 @@ export const Sidebar = () => {
   });
   const [showOrientationDialog, setShowOrientationDialog] = useState(false);
   const navigate = useNavigate();
+
+  // Listen for localStorage changes (cross-tab)
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'selectedTemplate') {
+        setSelectedTemplate(e.newValue);
+      }
+      if (e.key === 'selectedOrientation') {
+        setSelectedOrientation(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Poll for localStorage changes (same-tab)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const template = localStorage.getItem('selectedTemplate');
+      const orientation = localStorage.getItem('selectedOrientation');
+      setSelectedTemplate((prev) => prev !== template ? template : prev);
+      setSelectedOrientation((prev) => prev !== orientation ? orientation : prev);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   const newOptions = [
     "1UP",

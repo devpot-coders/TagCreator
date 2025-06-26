@@ -28,6 +28,9 @@ import { MdLocalPrintshop } from "react-icons/md";
 import axios from 'axios';
 import { Loader } from "./Loader";
 import Calculate from "../components/Calculate"
+import * as fabric  from 'fabric';
+import { useLocation } from 'react-router-dom';
+import jsPDF from 'jspdf';
 
 
 
@@ -283,7 +286,6 @@ const Print = () => {
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
   const [isInStock, setIsInStock] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItems, setSelectedItems] = useState([]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -362,6 +364,14 @@ const Print = () => {
   const [subCategories, setSubCategories] = useState([]);
 
   const [loading, setLoading] = useState(false);
+
+  const [priceData, setPriceData] = useState({});
+
+  const [pendingExportType, setPendingExportType] = useState(null);
+
+  const [previewImages, setPreviewImages] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const previewImagesRef = useRef([]);
 
   useEffect(() => {
     const handleAllCategorySubCategoryList = async () => {
@@ -898,9 +908,15 @@ const Print = () => {
   };
 
   const handleCheckboxChange = (id) => {
-    setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setSelectedItems((prev) => {
+      const exists = prev.some((item) => item.id === id);
+      if (exists) {
+        return prev.filter((item) => item.id !== id);
+      } else {
+        const itemObj = currentItems.find((item) => item.id === id);
+        return itemObj ? [...prev, itemObj] : prev;
+      }
+    });
   };
 
   // Handle closing the print settings popup
@@ -921,7 +937,7 @@ const Print = () => {
 
   const handleSelectAll = () => {
     setSelectedItems((prev) =>
-      prev.length === currentItems.length ? [] : currentItems.map((item) => item.id)
+      prev.length === currentItems.length ? [] : [...currentItems]
     );
   };
 
@@ -1143,9 +1159,36 @@ const handleOpenCalculator = () => {
     setShowCalculator(false);
   };
 
-  const handleSaveCalculator = (calculations) => {
-    console.log("Saved Field Calculations from Header:", calculations);
+  const handleSaveCalculator = async (calculations) => {
     setShowCalculator(false);
+    setPriceData(calculations || {});
+    setExporting(true);
+    console.log('DEBUG: handleSaveCalculator called');
+    console.log('DEBUG: selectedItems:', selectedItems);
+    console.log('DEBUG: template:', template);
+    console.log('DEBUG: calculations:', calculations);
+    const images = [];
+    for (let i = 0; i < selectedItems.length; i++) {
+      const item = selectedItems[i];
+      try {
+        const canvas = new fabric.Canvas(null, { width: 800, height: 1056 });
+        await new Promise(resolve => canvas.loadFromJSON(template, resolve));
+        replacePlaceholders(canvas, item, calculations || {});
+        removeGridAndRulers(canvas);
+        const multiplier = 3.125;
+        const dataURL = canvas.toDataURL({ format: 'png', multiplier });
+        images.push(dataURL);
+        console.log(`DEBUG: Generated preview image for item ${item}`);
+      } catch (err) {
+        console.error('DEBUG: Error generating preview for item', item, err);
+      }
+    }
+    setPreviewImages(images);
+    previewImagesRef.current = images;
+    setShowPreview(true);
+    setExporting(false);
+    setPendingExportType(null);
+    console.log('DEBUG: Preview images set, showPreview should be true');
   };
 
   useEffect(() => {
@@ -1663,8 +1706,70 @@ const handleOpenCalculator = () => {
     setCurrentPage(1);
   }, [tableData]);
 
+  const location = useLocation();
+  const { templateJSON, template, orientation, canvasSize, selectedItems: initialSelectedItems } = location.state || {};
+  const [selectedItems, setSelectedItems] = useState(initialSelectedItems || []);
+  const [templateData] = useState(templateJSON);
+  const [canvasDims] = useState(canvasSize || { width: 800, height: 600 });
+  const [exporting, setExporting] = useState(false);
+
+  // Helper to remove grid/ruler objects
+  function removeGridAndRulers(canvas) {
+    const toRemove = canvas.getObjects().filter(obj => obj.isGridOrRuler);
+    toRemove.forEach(obj => canvas.remove(obj));
+  }
+
+  // Helper to replace placeholders in the canvas
+  function replacePlaceholders(canvas, item, priceData) {
+    canvas.getObjects('textbox').forEach(obj => {
+      if (obj.text && obj.text.startsWith('{') && obj.text.endsWith('}')) {
+        const key = obj.text.slice(1, -1);
+        obj.text = item[key] || priceData[key] || '';
+      }
+    });
+    canvas.requestRenderAll();
+  }
+
+  // Export tags for selected items
+  async function exportTagsForItems(selectedItems, priceData, exportType = 'pdf') {
+    setExporting(true);
+    const pdf = new jsPDF();
+    const images = previewImagesRef.current.length ? previewImagesRef.current : previewImages;
+    for (let i = 0; i < images.length; i++) {
+      const dataURL = images[i];
+      if (i > 0) pdf.addPage();
+      pdf.addImage(dataURL, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+    }
+    if (exportType === 'print') {
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(pdfUrl);
+      if (printWindow) {
+        printWindow.onload = function () {
+          printWindow.focus();
+          printWindow.print();
+        };
+      }
+    } else {
+      pdf.save('tags.pdf');
+    }
+    setExporting(false);
+    setShowPreview(false);
+  }
+
+  const handleExportButtonClick = (type) => {
+    if (selectedItems.length === 0) {
+      setInfoModalMessage("No records selected / available to print");
+      setShowInfoModal(true);
+      return;
+    }
+    setPendingExportType(type); // 'pdf' or 'print'
+    setShowCalculator(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 w-full">
+      {exporting && <div className="loading-overlay">Exporting PDF...</div>}
       {/* Top Controls */}
       <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
         <span className="font-semibold text-gray-700">Select Records To Print</span>
@@ -1944,7 +2049,7 @@ const handleOpenCalculator = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <input
                       type="checkbox"
-                      checked={selectedItems.includes(item.id)}
+                      checked={selectedItems.some(i => i.id === item.id)}
                       onChange={() => handleCheckboxChange(item.id)}
                       className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
                     />
@@ -2086,12 +2191,12 @@ const handleOpenCalculator = () => {
           </button>
         </div>
         <div className="bg-orange-100 p-2">
-          <button onClick={handleOpenCalculator} className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
+        <button onClick={() => handleExportButtonClick('pdf')} className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
             <MdPictureAsPdf /> Create PDF
           </button>
         </div>
         <div className="bg-orange-100 p-2">
-          <button className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
+          <button onClick={() => handleExportButtonClick('print')} className="px-4 py-2 flex items-center gap-2 text-black p-10 font-semibold bg-gray-300">
             <MdLocalPrintshop /> Print
           </button>
         </div>
@@ -2154,6 +2259,30 @@ const handleOpenCalculator = () => {
         </div>
       )}
       
+       {/* Render tags for printing in a hidden print area */}
+      <div id="print-area" style={{ display: 'none' }}>
+        {/* TODO: Render the selected tags here, replacing placeholders with item/template data */}
+        {/* Example: selectedItems.map(itemId => <TagComponent key={itemId} ... />) */}
+      </div>
+
+      {/* Preview Modal - ensure this is visible and at the end of the main return */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-3xl w-full">
+            <h2 className="text-lg font-bold mb-4">Preview Tags</h2>
+            <div className="flex flex-wrap gap-4 justify-center max-h-[60vh] overflow-y-auto">
+              {previewImages.map((img, idx) => (
+                <img key={idx} src={img} alt={`Tag ${idx + 1}`} className="border shadow max-w-xs" />
+              ))}
+            </div>
+            <div className="flex justify-end gap-4 mt-6">
+              <button onClick={() => exportTagsForItems(selectedItems, priceData, 'print')} className="px-4 py-2 bg-blue-500 text-white rounded">Print</button>
+              <button onClick={() => exportTagsForItems(selectedItems, priceData, 'pdf')} className="px-4 py-2 bg-green-500 text-white rounded">Download PDF</button>
+              <button onClick={() => setShowPreview(false)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     
   );
