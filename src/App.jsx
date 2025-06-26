@@ -12,6 +12,7 @@ import Login from "./components/Auth/Login";
 import Print from "./pages/Print";
 import EditorCanvas from "./pages/EditorCanvas";
 import ProtectedRoute from "./utils/common/ProtectedRoutes";
+import CanvasToPDF from "./components/CanvasToPDF";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,7 @@ const App = () => (
             <Route index path="/" element={<ProtectedRoute><List /></ProtectedRoute>} />
             <Route path="/storetags" element={<ProtectedRoute><StoreTags /></ProtectedRoute>} />
             <Route path="/print" element={<ProtectedRoute><Print /></ProtectedRoute>} />
-
+            <Route path="/canvasToPDF" element={<ProtectedRoute><CanvasToPDF /></ProtectedRoute>} />
           </Route>
             <Route path="/login" element={<Login />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

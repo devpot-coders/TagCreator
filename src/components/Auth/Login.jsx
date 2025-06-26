@@ -97,6 +97,14 @@ const Login = () => {
           onSubmit={handleSubmit}
           className="flex flex-col justify-center w-full max-w-sm md:ml-48"
         >
+          {/* General error message */}
+          {errors.general && (
+            <div className="mb-4 text-center text-red-600 font-semibold bg-red-50 border border-red-200 rounded p-2">
+              {errors.general === "Request failed with status code 500" || errors.general?.status === 500
+                ? "Invalid username or password. Please try again."
+                : errors.general}
+            </div>
+          )}
           {/* Company Code */}
           <div className="mb-4 xl:h-[55px]">
             <div className="flex flex-col sm:flex-row sm:items-center">
@@ -154,25 +162,28 @@ const Login = () => {
               >
                 Password
               </Label>
-              <div className="flex-1 xl:h-[60px]  mt-2 xl:mt-0">
+              <div className="flex-1 xl:h-[60px] mt-2 xl:mt-0 relative">
                 <Input
                   id="Password"
                   name="Password"
-                  type={showPassword ? "text" : "Password"}
+                  type={showPassword ? "text" : "password"}
                   value={formData.Password}
                   onChange={handleChange}
                   placeholder="••••••••"
+                  className="pr-10"
                 />
-                <p className="text-red-500 text-xs mt-1 min-h-[18px]">
-                  {errors.Password || "\u00A0"}
-                </p>
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-14 xl:top-[211px] h-0 flex items-center text-gray-500"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 focus:outline-none"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
+                <p className="text-red-500 text-xs mt-1 min-h-[18px]">
+                  {errors.Password || "\u00A0"}
+                </p>
               </div>
             </div>
           </div>
