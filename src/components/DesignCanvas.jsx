@@ -633,7 +633,7 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 };
 
 // Add this helper function before the DesignCanvas component
-function addGridAndRulers(canvas) {
+export function addGridAndRulers(canvas) {
   // Remove any existing grid/ruler objects
   canvas.getObjects().forEach(obj => {
     if (obj.isGridOrRuler) canvas.remove(obj);
@@ -1136,6 +1136,7 @@ const DesignCanvas = ({
 
   // Initialize canvas
   useEffect(() => {
+    if (!canvasRef.current) return; // Prevent running if canvas is not in the DOM
     if (canvasRef.current) {
       // Dispose of existing canvas if it exists
       if (fabricCanvas) {
@@ -1307,11 +1308,15 @@ const DesignCanvas = ({
 
   useEffect(() => {
     if (fabricCanvas && initialConfig) {
-      console.log('Loading initial config:', initialConfig);
-      // Clear existing objects first
-      fabricCanvas.clear();
-      let loaded = false;
       try {
+        console.log('Loading initial config:', initialConfig);
+        // Clear existing objects first
+        try {
+          if (fabricCanvas.clear) fabricCanvas.clear();
+        } catch (e) {
+          console.error('Error clearing canvas:', e);
+        }
+        let loaded = false;
         // 1. If initialConfig.Content is XAML
         if (
           typeof initialConfig === 'object' &&
@@ -1503,15 +1508,32 @@ const DesignCanvas = ({
           addGridAndRulers(fabricCanvas);
           fabricCanvas.requestRenderAll();
         }
+        // After loading objects, always make them editable/selectable
+        setTimeout(() => {
+          try {
+            makeAllObjectsEditable(fabricCanvas);
+            fabricCanvas.requestRenderAll();
+          } catch (e) {
+            console.error('Error making objects editable:', e);
+          }
+        }, 0);
       } catch (error) {
         console.error('Error loading initial config:', error);
         // Add grid and rulers even if loading fails
-        addGridAndRulers(fabricCanvas);
-        fabricCanvas.requestRenderAll();
+        try {
+          addGridAndRulers(fabricCanvas);
+          fabricCanvas.requestRenderAll();
+        } catch (e) {
+          console.error('Error adding grid/rulers after load fail:', e);
+        }
       }
       // Always add grid/rulers if nothing was loaded or after loading
-      addGridAndRulers(fabricCanvas);
-      fabricCanvas.requestRenderAll();
+      try {
+        addGridAndRulers(fabricCanvas);
+        fabricCanvas.requestRenderAll();
+      } catch (e) {
+        console.error('Error adding grid/rulers:', e);
+      }
     }
   }, [fabricCanvas, initialConfig]);
 
@@ -2440,27 +2462,36 @@ const DesignCanvas = ({
         onDrop={(e) => {
           e.preventDefault();
           const tool = e.dataTransfer.getData("tool");
-          if (fabricCanvas && (SHAPES[tool] || ARROWS[tool])) {
-            const pointer = fabricCanvas.getPointer(e);
-            const left = pointer.x;
-            const top = pointer.y;
-
-            if (SHAPES[tool]) {
-              const shape = SHAPES[tool](left - 25, top - 25);
-              fabricCanvas.add(shape);
-              fabricCanvas.setActiveObject(shape);
-            } else if (ARROWS[tool]) {
-              // Create arrow with default size and color
-              const arrow = ARROWS[tool](left - 25, top - 25, ARROWS.config.defaultSize, ARROWS.config.defaultColor);
-              fabricCanvas.add(arrow);
-              fabricCanvas.setActiveObject(arrow);
+          if (!fabricCanvas || fabricCanvas._disposed) return;
+          if (SHAPES[tool] || ARROWS[tool]) {
+            try {
+              const pointer = fabricCanvas.getPointer(e);
+              const left = pointer.x;
+              const top = pointer.y;
+              if (SHAPES[tool]) {
+                const shape = SHAPES[tool](left - 25, top - 25);
+                fabricCanvas.add(shape);
+                fabricCanvas.setActiveObject(shape);
+              } else if (ARROWS[tool]) {
+                // Create arrow with default size and color
+                const arrow = ARROWS[tool](left - 25, top - 25, ARROWS.config.defaultSize, ARROWS.config.defaultColor);
+                fabricCanvas.add(arrow);
+                fabricCanvas.setActiveObject(arrow);
+              }
+              fabricCanvas.requestRenderAll();
+              onToolChange("select");
+            } catch (err) {
+              console.error('Error during drag-and-drop:', err);
             }
-            fabricCanvas.requestRenderAll();
-            onToolChange("select");
           }
         }}
       >
-        <canvas ref={canvasRef} className="block" />
+        <canvas
+          ref={canvasRef}
+          className="block"
+          width={canvasSize.width}
+          height={canvasSize.height}
+        />
         {/* Coordinate label overlay */}
         {coordLabel && (
           <div
@@ -2540,6 +2571,23 @@ export function getUserObjectsForSaving(fabricCanvas) {
   const serialized = userObjects.map(obj => obj.toObject());
   // Return as a stringified array
   return JSON.stringify(serialized);
+}
+
+// Utility to recursively set objects editable/selectable
+function makeAllObjectsEditable(canvas) {
+  if (!canvas) return;
+  const setEditable = (obj) => {
+    if (!obj) return;
+    obj.selectable = true;
+    obj.evented = true;
+    if (obj.type === 'textbox' || obj.type === 'text') {
+      obj.editable = true;
+    }
+    if (obj.type === 'group' && obj.getObjects) {
+      obj.getObjects().forEach(setEditable);
+    }
+  };
+  canvas.getObjects().forEach(setEditable);
 }
 
 
