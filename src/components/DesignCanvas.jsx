@@ -633,7 +633,11 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 };
 
 // Add this helper function before the DesignCanvas component
-function addGridAndRulers(canvas) {
+// <<<<<<< HEAD
+// function addGridAndRulers(canvas) {
+// =======
+export function addGridAndRulers(canvas) {
+// >>>>>>> main
   // Remove any existing grid/ruler objects
   canvas.getObjects().forEach(obj => {
     if (obj.isGridOrRuler) canvas.remove(obj);
@@ -1132,9 +1136,14 @@ const DesignCanvas = ({
   const [coordLabel, setCoordLabel] = useState(null); // { x, y, left, top }
   const coordLabelTimeout = useRef(null);
   const [loading, setLoading] = useState(false);
+// <<<<<<< HEAD
+// =======
+  const [textToolUsed, setTextToolUsed] = useState(false); // Track if textbox was added for this tool selection
+// >>>>>>> main
 
   // Initialize canvas
   useEffect(() => {
+    if (!canvasRef.current) return; // Prevent running if canvas is not in the DOM
     if (canvasRef.current) {
       // Dispose of existing canvas if it exists
       if (fabricCanvas) {
@@ -1306,11 +1315,23 @@ const DesignCanvas = ({
 
   useEffect(() => {
     if (fabricCanvas && initialConfig) {
-      console.log('Loading initial config:', initialConfig);
-      // Clear existing objects first
-      fabricCanvas.clear();
-      let loaded = false;
+// <<<<<<< HEAD
+//       console.log('Loading initial config:', initialConfig);
+//       // Clear existing objects first
+//       fabricCanvas.clear();
+//       let loaded = false;
+//       try {
+// =======
       try {
+        console.log('Loading initial config:', initialConfig);
+        // Clear existing objects first
+        try {
+          if (fabricCanvas.clear) fabricCanvas.clear();
+        } catch (e) {
+          console.error('Error clearing canvas:', e);
+        }
+        let loaded = false;
+// >>>>>>> main
         // 1. If initialConfig.Content is XAML
         if (
           typeof initialConfig === 'object' &&
@@ -1502,15 +1523,44 @@ const DesignCanvas = ({
           addGridAndRulers(fabricCanvas);
           fabricCanvas.requestRenderAll();
         }
+// <<<<<<< HEAD
+//       } catch (error) {
+//         console.error('Error loading initial config:', error);
+//         // Add grid and rulers even if loading fails
+//         addGridAndRulers(fabricCanvas);
+//         fabricCanvas.requestRenderAll();
+//       }
+//       // Always add grid/rulers if nothing was loaded or after loading
+//       addGridAndRulers(fabricCanvas);
+//       fabricCanvas.requestRenderAll();
+// =======
+        // After loading objects, always make them editable/selectable
+        setTimeout(() => {
+          try {
+            makeAllObjectsEditable(fabricCanvas);
+            fabricCanvas.requestRenderAll();
+          } catch (e) {
+            console.error('Error making objects editable:', e);
+          }
+        }, 0);
       } catch (error) {
         console.error('Error loading initial config:', error);
         // Add grid and rulers even if loading fails
-        addGridAndRulers(fabricCanvas);
-        fabricCanvas.requestRenderAll();
+        try {
+          addGridAndRulers(fabricCanvas);
+          fabricCanvas.requestRenderAll();
+        } catch (e) {
+          console.error('Error adding grid/rulers after load fail:', e);
+        }
       }
       // Always add grid/rulers if nothing was loaded or after loading
-      addGridAndRulers(fabricCanvas);
-      fabricCanvas.requestRenderAll();
+      try {
+        addGridAndRulers(fabricCanvas);
+        fabricCanvas.requestRenderAll();
+      } catch (e) {
+        console.error('Error adding grid/rulers:', e);
+      }
+// >>>>>>> main
     }
   }, [fabricCanvas, initialConfig]);
 
@@ -1625,85 +1675,151 @@ const DesignCanvas = ({
     };
   }, [activeTool, fabricCanvas, onToolChange, selectedImage]);
 
-  // Add text tool selection functionality
+  // Add text tool selection functionality (immediate textbox on tool select)
+  // useEffect(() => {
+  //   if (!fabricCanvas || activeTool !== "text") return;
+
+  //   let isSelecting = false;
+  //   let startPoint = null;
+  //   let selectionRect = null;
+
+  //   const handleMouseDown = (e) => {
+  //     if (fabricCanvas.getActiveObject()) return;
+
+  //     isSelecting = true;
+  //     startPoint = e.pointer;
+
+  //     selectionRect = new fabric.Rect({
+  //       left: startPoint.x,
+  //       top: startPoint.y,
+  //       width: 0,
+  //       height: 0,
+  //       fill: 'rgba(0, 0, 0, 0.1)',
+  //       stroke: '#000',
+  //       strokeWidth: 1,
+  //       fontSize: 12,
+  //       selectable: false,
+  //       evented: false
+  //     });
+
+  //     fabricCanvas.add(selectionRect);
+  //   };
+
+  //   const handleMouseMove = (e) => {
+  //     if (!isSelecting || !selectionRect) return;
+
+  //     const current = e.pointer;
+  //     const width = Math.abs(current.x - startPoint.x);
+  //     const height = Math.abs(current.y - startPoint.y);
+
+  //     console.log('Mouse Move - Selection Dimensions:', {
+  //       width,
+  //       height,
+  //       startPoint,
+  //       currentPoint: current
+  //     });
+
+  //     selectionRect.set({
+  //       width,
+  //       height,
+  //       left: Math.min(current.x, startPoint.x),
+  //       top: Math.min(current.y, startPoint.y)
+  //     });
+
+  //     fabricCanvas.requestRenderAll();
+  //   };
+
+  //   const handleMouseUp = () => {
+  //     onToolChange("select");
+  //     if (!isSelecting || !selectionRect) return;
+  //     isSelecting = false;
+
+  //     // Get the actual dimensions from the selection rectangle
+  //     const width = Math.max(selectionRect.width, 50); // Minimum width of 10px
+  //     const height = Math.max(selectionRect.height, 50); // Minimum height of 10px
+  //     const left = selectionRect.left;
+  //     const top = selectionRect.top;
+
+  //     fabricCanvas.remove(selectionRect);
+
+  //     // Create a rectangle with the exact selection dimensions
+  //     const rect = new fabric.Rect({
+  //       left,
+  //       top,
+  //       width,
+  //       height,
+  //       fontSize: 15, // Always start at 12
+  //       fill: "white",
+  //       fontFamily: "Arial",
+  //       textAlign: 'left',
+  //       originX: 'left',
+  //       originY: 'top',
+  //       selectable: true,
+  //       editable: true,
+  //       splitByGrapheme: true,
+  //       transparentCorners: false,
+  //       cornerColor: "#000",
+  //       cornerSize: 10,
+  //       hasRotatingPoint: true,
+  //       lockScalingX: false,
+  //       lockScalingY: false,
+  //       lockUniScaling: false,
+  //       backgroundColor: 'transparent',
+  //       stroke: 'transparent',
+  //       strokeWidth: 0,
+  //     });
+  // // Add text tool selection functionality (immediate textbox on tool select)
+
+  //     fabricCanvas.add(rect);
+  //     fabricCanvas.setActiveObject(rect);
+  //     fabricCanvas.requestRenderAll();
+
+  //     // Change fill on selection/deselection
+  //     rect.on("selected", () => {
+  //       rect.set({ fill: "white" });
+  //       fabricCanvas.requestRenderAll();
+  //     });
+  //     rect.on("deselected", () => {
+  //       rect.set({ fill: "transparent" });
+  //       fabricCanvas.requestRenderAll();
+  //     });
+  //     // Enter editing mode for the textbox
+  //     rect.enterEditing();
+  //     setTimeout(() => {
+  //       if (rect.hiddenTextarea) {
+  //         rect.hiddenTextarea.style.overflowY = 'scroll';
+  //         rect.hiddenTextarea.style.height = `${rect.height}px`;
+  //       }
+  //     }, 0);
+      
+
+  //   };
+
+  //   fabricCanvas.on("mouse:down", handleMouseDown);
+  //   fabricCanvas.on("mouse:move", handleMouseMove);
+  //   fabricCanvas.on("mouse:up", handleMouseUp);
+
+  //   return () => {
+  //     fabricCanvas.off("mouse:down", handleMouseDown);
+  //     fabricCanvas.off("mouse:move", handleMouseMove);
+  //     fabricCanvas.off("mouse:up", handleMouseUp);
+  //   };
+  // }, [activeTool, fabricCanvas, canvasSize, textToolUsed, onToolChange]);
+
   useEffect(() => {
-    if (!fabricCanvas || activeTool !== "text") return;
-
-    let isSelecting = false;
-    let startPoint = null;
-    let selectionRect = null;
-
-    const handleMouseDown = (e) => {
-      if (fabricCanvas.getActiveObject()) return;
-
-      isSelecting = true;
-      startPoint = e.pointer;
-
-      selectionRect = new fabric.Rect({
-        left: startPoint.x,
-        top: startPoint.y,
-        width: 0,
-        height: 0,
-        fill: 'rgba(0, 0, 0, 0.1)',
-        stroke: '#000',
-        strokeWidth: 1,
-        fontSize: 12,
-        selectable: false,
-        evented: false
-      });
-
-      fabricCanvas.add(selectionRect);
-    };
-
-    const handleMouseMove = (e) => {
-      if (!isSelecting || !selectionRect) return;
-
-      const current = e.pointer;
-      const width = Math.abs(current.x - startPoint.x);
-      const height = Math.abs(current.y - startPoint.y);
-
-      console.log('Mouse Move - Selection Dimensions:', {
-        width,
-        height,
-        startPoint,
-        currentPoint: current
-      });
-
-      selectionRect.set({
-        width,
-        height,
-        left: Math.min(current.x, startPoint.x),
-        top: Math.min(current.y, startPoint.y)
-      });
-
-      fabricCanvas.requestRenderAll();
-    };
-
-    const handleMouseUp = () => {
-      onToolChange("select");
-      if (!isSelecting || !selectionRect) return;
-      isSelecting = false;
-
-      // Get the actual dimensions from the selection rectangle
-      const width = Math.max(selectionRect.width, 10); // Minimum width of 10px
-      const height = Math.max(selectionRect.height, 10); // Minimum height of 10px
-      const left = selectionRect.left;
-      const top = selectionRect.top;
-
-      fabricCanvas.remove(selectionRect);
-
-      // Create a rectangle with the exact selection dimensions
-      const rect = new fabric.Rect({
-        left,
-        top,
-        width,
-        height,
-        fontSize: 15, // Always start at 12
-        fill: "white",
+    if (!fabricCanvas) return;
+    if (activeTool === "text" && !textToolUsed) {
+      // Add a textbox at the top-left (start) of the canvas and enter editing mode
+      const textbox = new fabric.Textbox("", {
+        left: 20, // Start near the left edge
+        top: 20,  // Start near the top edge
+        width: 200,
+        fontSize: 18,
+        fill: "#000000",
         fontFamily: "Arial",
-        textAlign: 'left',
-        originX: 'left',
-        originY: 'top',
+        textAlign: "left",
+        originX: "left",
+        originY: "top",
         selectable: true,
         editable: true,
         splitByGrapheme: true,
@@ -1714,47 +1830,26 @@ const DesignCanvas = ({
         lockScalingX: false,
         lockScalingY: false,
         lockUniScaling: false,
-        backgroundColor: 'transparent',
-        stroke: 'transparent',
+        backgroundColor: "transparent",
+        stroke: "transparent",
         strokeWidth: 0,
       });
-
-      fabricCanvas.add(rect);
-      fabricCanvas.setActiveObject(rect);
+      fabricCanvas.add(textbox);
+      fabricCanvas.setActiveObject(textbox);
       fabricCanvas.requestRenderAll();
-
-      // Change fill on selection/deselection
-      rect.on("selected", () => {
-        rect.set({ fill: "white" });
-        fabricCanvas.requestRenderAll();
-      });
-      rect.on("deselected", () => {
-        rect.set({ fill: "transparent" });
-        fabricCanvas.requestRenderAll();
-      });
-      // Enter editing mode for the textbox
-      rect.enterEditing();
+      textbox.enterEditing();
       setTimeout(() => {
-        if (rect.hiddenTextarea) {
-          rect.hiddenTextarea.style.overflowY = 'scroll';
-          rect.hiddenTextarea.style.height = `${rect.height}px`;
+        if (textbox.hiddenTextarea) {
+          textbox.hiddenTextarea.focus();
         }
       }, 0);
-      
-
-    };
-
-    fabricCanvas.on("mouse:down", handleMouseDown);
-    fabricCanvas.on("mouse:move", handleMouseMove);
-    fabricCanvas.on("mouse:up", handleMouseUp);
-
-    return () => {
-      fabricCanvas.off("mouse:down", handleMouseDown);
-      fabricCanvas.off("mouse:move", handleMouseMove);
-      fabricCanvas.off("mouse:up", handleMouseUp);
-    };
-  }, [activeTool, fabricCanvas]);
-
+      setTextToolUsed(true);
+      // Switch back to select tool after adding textbox
+      onToolChange("select");
+    } else if (activeTool !== "text" && textToolUsed) {
+      setTextToolUsed(false);
+    }
+  }, [activeTool, fabricCanvas, canvasSize, textToolUsed, onToolChange]);
   // Add line tool functionality
   useEffect(() => {
     if (!fabricCanvas || activeTool !== "line") return;
@@ -2007,7 +2102,6 @@ const DesignCanvas = ({
       if (activeObject.type === 'group') {
         const textObject = activeObject.getObjects().find(obj => obj.type === 'textbox');
         if (textObject) {
-          // If text exists, make it editable
           textObject.enterEditing();
           textObject.hiddenTextarea.focus();
           return;
@@ -2246,6 +2340,58 @@ const DesignCanvas = ({
       onToolChange("select");
     }
 
+// <<<<<<< HEAD
+// =======
+    // if (activeTool === "barcode") {
+    //   // Create a temporary canvas for JsBarcode
+    //   const tempCanvas = document.createElement('canvas');
+    //   JsBarcode(tempCanvas, "123456789012", { format: "CODE128" });
+    //   const imgSrc = tempCanvas.toDataURL("image/png");
+
+    //   const img = new window.Image();
+    //   img.onload = () => {
+    //     const fabricImg = new fabric.Image(img, {
+    //       left: 100,
+    //       top: 100,
+    //       scaleX: 1,
+    //       scaleY: 1,
+    //       selectable: true,
+    //       hasControls: true,
+    //       hasBorders: true,
+    //     });
+    //     fabricCanvas.add(fabricImg);
+    //     fabricCanvas.setActiveObject(fabricImg);
+    //     fabricCanvas.requestRenderAll();
+    //     onToolChange("select");
+    //   };
+    //   img.src = imgSrc;
+    // }
+
+    // if (activeTool === "qrcode") {
+    //   // Create a QR code image using qrcode
+    //   QRCode.toDataURL("https://example.com", { width: 128 }, (err, url) => {
+    //     if (err) return;
+    //     const img = new window.Image();
+    //     img.onload = () => {
+    //       const fabricImg = new fabric.Image(img, {
+    //         left: 100,
+    //         top: 100,
+    //         scaleX: 1,
+    //         scaleY: 1,
+    //         selectable: true,
+    //         hasControls: true,
+    //         hasBorders: true,
+    //       });
+    //       fabricCanvas.add(fabricImg);
+    //       fabricCanvas.setActiveObject(fabricImg);
+    //       fabricCanvas.requestRenderAll();
+    //       onToolChange("select");
+    //     };
+    //     img.src = url;
+    //   });
+    // }
+
+// >>>>>>> main
 
     if (activeTool === 'qrcode') {
       console.log('QR code tool activated. Generating QR code...');
@@ -2346,27 +2492,40 @@ const DesignCanvas = ({
         onDrop={(e) => {
           e.preventDefault();
           const tool = e.dataTransfer.getData("tool");
-          if (fabricCanvas && (SHAPES[tool] || ARROWS[tool])) {
-            const pointer = fabricCanvas.getPointer(e);
-            const left = pointer.x;
-            const top = pointer.y;
-
-            if (SHAPES[tool]) {
-              const shape = SHAPES[tool](left - 25, top - 25);
-              fabricCanvas.add(shape);
-              fabricCanvas.setActiveObject(shape);
-            } else if (ARROWS[tool]) {
-              // Create arrow with default size and color
-              const arrow = ARROWS[tool](left - 25, top - 25, ARROWS.config.defaultSize, ARROWS.config.defaultColor);
-              fabricCanvas.add(arrow);
-              fabricCanvas.setActiveObject(arrow);
+          if (!fabricCanvas || fabricCanvas._disposed) return;
+          if (SHAPES[tool] || ARROWS[tool]) {
+            try {
+              const pointer = fabricCanvas.getPointer(e);
+              const left = pointer.x;
+              const top = pointer.y;
+              if (SHAPES[tool]) {
+                const shape = SHAPES[tool](left - 25, top - 25);
+                fabricCanvas.add(shape);
+                fabricCanvas.setActiveObject(shape);
+              } else if (ARROWS[tool]) {
+                // Create arrow with default size and color
+                const arrow = ARROWS[tool](left - 25, top - 25, ARROWS.config.defaultSize, ARROWS.config.defaultColor);
+                fabricCanvas.add(arrow);
+                fabricCanvas.setActiveObject(arrow);
+              }
+              fabricCanvas.requestRenderAll();
+              onToolChange("select");
+            } catch (err) {
+              console.error('Error during drag-and-drop:', err);
             }
-            fabricCanvas.requestRenderAll();
-            onToolChange("select");
           }
         }}
       >
+{/* <<<<<<< HEAD
         <canvas ref={canvasRef} className="block" />
+======= */}
+        <canvas
+          ref={canvasRef}
+          className="block"
+          width={canvasSize.width}
+          height={canvasSize.height}
+        />
+{/* >>>>>>> main */}
         {/* Coordinate label overlay */}
         {coordLabel && (
           <div
@@ -2448,4 +2607,24 @@ export function getUserObjectsForSaving(fabricCanvas) {
   return JSON.stringify(serialized);
 }
 
+// <<<<<<< HEAD
+// =======
+// Utility to recursively set objects editable/selectable
+function makeAllObjectsEditable(canvas) {
+  if (!canvas) return;
+  const setEditable = (obj) => {
+    if (!obj) return;
+    obj.selectable = true;
+    obj.evented = true;
+    if (obj.type === 'textbox' || obj.type === 'text') {
+      obj.editable = true;
+    }
+    if (obj.type === 'group' && obj.getObjects) {
+      obj.getObjects().forEach(setEditable);
+    }
+  };
+  canvas.getObjects().forEach(setEditable);
+}
+
+// >>>>>>> main
 

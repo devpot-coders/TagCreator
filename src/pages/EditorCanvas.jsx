@@ -24,6 +24,9 @@ import ShapesPanel from "../components/ShapesPanel";
 import Calculate from "../components/Calculate";
 import { useTag } from "../utils/TagService/TagHooks/useTag";
 import { apiClient } from "../auth/apiClient";
+
+import { addGridAndRulers } from "../components/DesignCanvas";
+
 // // import { PropertiesPanel } from "../components/PropertiesPanel";
 
 
@@ -115,6 +118,13 @@ function EditorCanvas() {
   const { fetchTagById } = useTag("afhstXDev");
 
   const [initialConfig, setInitialConfig] = useState(null);
+// <<<<<<< HEAD
+// =======
+  const [canvasConfig, setCanvasConfig] = useState(null);
+
+  // Add a state to track if editing or creating
+  const isEditMode = Boolean((location.state && (location.state.id || (initialConfig && initialConfig.id))));
+// >>>>>>> main
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -158,6 +168,8 @@ function EditorCanvas() {
         height: newSize.height
       });
       
+      // Do not set background color to white here; let the grid/ruler show through for editing
+      
       // Center objects in new canvas size
       currentObjects.forEach(obj => {
         // Calculate new position to keep object centered
@@ -192,6 +204,13 @@ function EditorCanvas() {
       // Render the canvas with updated objects
       fabricCanvas.requestRenderAll();
       console.log('Canvas size updated, objects preserved');
+
+      try {
+        addGridAndRulers(fabricCanvas);
+        fabricCanvas.requestRenderAll();
+      } catch (e) {
+        console.error('Error adding grid/rulers after resize:', e);
+      }
     } else {
       // If no canvas exists, just update the size state
       setCanvasSize(newSize);
@@ -203,6 +222,7 @@ function EditorCanvas() {
     return () => {
       if (fabricCanvas) {
         fabricCanvas.dispose();
+        setFabricCanvas(null); // Ensure disposed canvas is not reused
       }
     };
   }, [fabricCanvas]);
@@ -261,7 +281,7 @@ function EditorCanvas() {
 
   // Update canvas dimensions when size changes
   useEffect(() => {
-    if (fabricCanvas) {
+    if (fabricCanvas && fabricCanvas.lowerCanvasEl) {
       try {
         fabricCanvas.setDimensions({
           width: canvasSize.width,
@@ -317,7 +337,7 @@ function EditorCanvas() {
   const handleToolChange = (tool, value, fillColor) => {
     console.log('Tool change:', tool, value);
     setActiveTool(tool);
-    
+      
     if (tool === "image") {
       console.log('Setting selected image:', value);
       setSelectedImage(value);
@@ -492,6 +512,32 @@ function EditorCanvas() {
         });
         break;
       }
+      case 'textbox': {
+        const { text, type, version, ...options } = clipboard;
+        pastedObject = new fabric.Textbox(text, {
+          ...options,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
+      case 'text': {
+        const { text, type, version, ...options } = clipboard;
+        pastedObject = new fabric.Text(text, {
+          ...options,
+          left: (clipboard.left || 0) + offset,
+          top: (clipboard.top || 0) + offset,
+          evented: true,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+        });
+        break;
+      }
       case 'image':
         // For images, we need to load the image first
         if (!clipboard.src) {
@@ -554,18 +600,6 @@ function EditorCanvas() {
 
       case 'circle':
         pastedObject = new fabric.Circle({
-          ...clipboard,
-          left: (clipboard.left || 0) + offset,
-          top: (clipboard.top || 0) + offset,
-          evented: true,
-          selectable: true,
-          hasControls: true,
-          hasBorders: true,
-        });
-        break;
-
-      case 'text':
-        pastedObject = new fabric.Text(clipboard.text, {
           ...clipboard,
           left: (clipboard.left || 0) + offset,
           top: (clipboard.top || 0) + offset,
@@ -706,10 +740,22 @@ function EditorCanvas() {
     console.log("Object pasted successfully");
   };
 
+// <<<<<<< HEAD
+//   const handleSave = async () => {
+//     if (!fabricCanvas) return;
+//     // If editing (coming from List), do not show template name dialog, just save
+//     if (location.state && location.state.id && initialConfig) {
+// =======
+  // Add a handleSaveAsNew function that always prompts for a new name and creates a new template
+  const handleSaveAsNew = () => {
+    setShowTemplateNameDialog(true);
+  };
+
+  // In handleSave, only update if in edit mode, otherwise create new
   const handleSave = async () => {
     if (!fabricCanvas) return;
-    // If editing (coming from List), do not show template name dialog, just save
-    if (location.state && location.state.id && initialConfig) {
+    if (isEditMode) {
+// >>>>>>> main
       // Build config_1 as a stringified object with all canvas info
       const config_1 = JSON.stringify({
         objects: getUserObjectsForSaving(fabricCanvas),
@@ -719,18 +765,32 @@ function EditorCanvas() {
         template: template,
       });
       const payload = {
-        company_code: "afhstXDev",
-        id: initialConfig.id || location.state.id,
-        template_name: initialConfig.template_name || "",
-        page_size: initialConfig.page_size || "A4",
-        template_html: initialConfig.template_html || "",
-        created_by: initialConfig.created_by || "Admin",
+//         company_code: "afhstXDev",
+// <<<<<<< HEAD
+//         id: initialConfig.id || location.state.id,
+//         template_name: initialConfig.template_name || "",
+//         page_size: initialConfig.page_size || "A4",
+//         template_html: initialConfig.template_html || "",
+//         created_by: initialConfig.created_by || "Admin",
+//         updated_by: "Admin",
+//         config_1,
+//         config_2: initialConfig.config_2 || "",
+//       };
+//       try {
+//        const response = await apiClient.post("tags/addEdit.php", payload);
+// =======
+        id: (initialConfig && initialConfig.id) || location.state.id,
+        template_name: (initialConfig && initialConfig.template_name) || "",
+        page_size: (initialConfig && initialConfig.page_size) || "A4",
+        template_html: (initialConfig && initialConfig.template_html) || "",
+        created_by: (initialConfig && initialConfig.created_by) || "Admin",
         updated_by: "Admin",
         config_1,
-        config_2: initialConfig.config_2 || "",
+        config_2: (initialConfig && initialConfig.config_2) || "",
       };
       try {
-       const response = await apiClient.post("tags/addEdit.php", payload);
+        const response = await apiClient.post("tags/addEdit.php", payload);
+// >>>>>>> main
         if(response) {
           window.location.href = "/";
         }
@@ -738,6 +798,11 @@ function EditorCanvas() {
         alert("Failed to update template: " + (error.message || "Unknown error"));
       }
       return;
+// <<<<<<< HEAD
+// =======
+    } else {
+      setShowTemplateNameDialog(true);
+// >>>>>>> main
     }
     // Otherwise, show template name dialog for new templates
     setShowTemplateNameDialog(true);
@@ -814,17 +879,28 @@ function EditorCanvas() {
   };
 
   useEffect(() => {
-    // Only fetch once on mount, not on every location.state change
-    if (location.state && location.state.id) {
+// <<<<<<< HEAD
+//     // Only fetch once on mount, not on every location.state change
+//     if (location.state && location.state.id) {
+//       fetchTagById(location.state.id).then((data) => {
+//         console.log(data.records)
+// =======
+    if (location.state && location.state.templateData) {
+      setInitialConfig(location.state.templateData);
+    } else if (location.state && location.state.id) {
       fetchTagById(location.state.id).then((data) => {
-        console.log(data.records)
+// >>>>>>> main
         if (data && data.records && data.records[0]) {
           setInitialConfig(data.records[0]);
         }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to prevent continuous API calls
+// <<<<<<< HEAD
+//   }, []); // Empty dependency array to prevent continuous API calls
+// =======
+  }, [location.state]);
+// >>>>>>> main
 
   useEffect(() => {
     if (initialConfig && initialConfig.CanvasConfig) {
@@ -848,7 +924,10 @@ function EditorCanvas() {
   };
 
   // Before rendering DesignCanvas, parse config_1 if needed
-  let canvasConfig = "";
+// <<<<<<< HEAD
+//   let canvasConfig = "";
+// =======
+// >>>>>>> main
   useEffect(() => {
     if (initialConfig?.config_1) {
       try {
@@ -857,30 +936,52 @@ function EditorCanvas() {
         if (typeof objects === 'string') {
           objects = JSON.parse(objects);
         }
-        // Validate objects array
+// <<<<<<< HEAD
+//         // Validate objects array
+// =======
+// >>>>>>> main
         if (Array.isArray(objects)) {
           const validObjects = objects
             .filter(obj => obj && obj.type)
             .map(obj => ({ ...obj, type: obj.type.toLowerCase() }));
-          canvasConfig = { objects: validObjects };
+// <<<<<<< HEAD
+//           canvasConfig = { objects: validObjects };
+//         } else if (objects && typeof objects === 'object') {
+//           canvasConfig = objects;
+//         } else {
+//           canvasConfig = {};
+// =======
+          setCanvasConfig({ objects: validObjects });
         } else if (objects && typeof objects === 'object') {
-          canvasConfig = objects;
+          setCanvasConfig(objects);
         } else {
-          canvasConfig = {};
+          setCanvasConfig({});
+// >>>>>>> main
         }
         // Update canvas size and orientation if present
         if (parsed.canvas_width && parsed.canvas_height) {
           setCanvasSize({ width: parsed.canvas_width, height: parsed.canvas_height });
         }
-        if (parsed.orientation) {
-          // Only update if orientation is present
-        }
+// <<<<<<< HEAD
+//         if (parsed.orientation) {
+//           // Only update if orientation is present
+//         }
+//       } catch {
+//         canvasConfig = initialConfig.config_1;
+//       }
+//     }
+//     // Debug log
+//     console.log('canvasConfig to load:', canvasConfig);
+// =======
       } catch {
-        canvasConfig = initialConfig.config_1;
+        setCanvasConfig(initialConfig.config_1);
       }
+    } else {
+      setCanvasConfig(null);
     }
     // Debug log
-    console.log('canvasConfig to load:', canvasConfig);
+    // console.log('canvasConfig to load:', canvasConfig);
+// >>>>>>> main
   }, [initialConfig]);
 
   return (
@@ -937,20 +1038,44 @@ function EditorCanvas() {
 
           <div className="flex items-center space-x-5">
             <div className="flex flex-col items-center space-y-1">
-              <Button
-                variant="outline"
-                className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                onClick={handleSave}
-              >
-                <Save className="scale-150" color="black" />
-              </Button>
-              <p className="text-xs">Save</p>
+              {isEditMode ? (
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
+                  onClick={handleSave}
+                >
+                  <Save className="scale-150" color="black" />
+                  Update
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
+                  onClick={handleSave}
+                >
+                  <Save className="scale-150" color="black" />
+                  Save
+                </Button>
+              )}
+              {isEditMode && (
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
+                  onClick={handleSaveAsNew}
+                >
+                  <Save className="scale-150" color="black" />
+                  Save As New
+                </Button>
+              )}
             </div>
             <div className="flex flex-col items-center space-y-1">
               <Button
                 variant="outline"
                 className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
                 onClick={handlePrint}
+
+                // onClick={handleExportPDF}
+
               >
                 <Printer className="scale-150" color="black" />
               </Button>
@@ -1009,7 +1134,9 @@ function EditorCanvas() {
                 onRulerMouseMove={(y) => handleRulerMouseMove(y, "y")}
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
-              <div className="flex-1 flex justify-center canvas-container-wrapper">
+              <div className="flex-1 flex justify-center canvas-container-wrapper"
+              //  ref={designCanvasRef}
+               >
                 <DesignCanvas
                   activeTool={activeTool}
                   canvasSize={canvasSize}
@@ -1021,7 +1148,11 @@ function EditorCanvas() {
                   strokeWidth={strokeWidth}
                   clipboard={clipboard}
                   setClipboard={setClipboard}
-                  initialConfig={canvasConfig}
+// <<<<<<< HEAD
+//                   initialConfig={canvasConfig}
+// =======
+                  initialConfig={canvasConfig || { objects: [] }}
+{/* >>>>>>> main */}
                 />
               </div>
             </div>

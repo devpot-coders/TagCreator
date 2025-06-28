@@ -314,6 +314,7 @@ function List() {
   const {
     fetchTagList,
     deleteTag,
+    fetchTagById,
   } = useTag();
 
 
@@ -1043,6 +1044,23 @@ function List() {
     };
 
     return createPortal(dropdownContent(), document.body, `filter-dropdown-portal-${columnKey}`);
+
+  };
+
+  const handleEdit = async (id) => {
+    setLoading(true);
+    try {
+      const response = await fetchTagById(id);
+      if (response && response.records && response.records[0]) {
+        navigate("/editorCanvas", { state: { templateData: response.records[0] } });
+      } else {
+        alert("Template not found.");
+      }
+    } catch (error) {
+      alert("Failed to fetch template for editing.");
+    }
+    setLoading(false);
+
   };
 
   return (
@@ -1117,7 +1135,11 @@ function List() {
                   <TableCell>
                     <Button 
                       className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition"
+
                       onClick={() => navigate("/editorCanvas", { state: { id: tag.id } })}
+
+                      // onClick={() => handleEdit(tag.id)}
+
                     >
                       <FiEdit className="text-sm" />
                       Edit
