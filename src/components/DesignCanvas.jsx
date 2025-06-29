@@ -661,6 +661,7 @@ export function addGridAndRulers(canvas) {
     });
     line.isGridOrRuler = true;
     canvas.add(line);
+    canvas.sendObjectToBack(line)
   }
 
   // Draw horizontal grid lines
@@ -673,6 +674,7 @@ export function addGridAndRulers(canvas) {
     });
     line.isGridOrRuler = true;
     canvas.add(line);
+    canvas.sendObjectToBack(line)
   }
 
   // Horizontal ruler (top)
@@ -685,9 +687,9 @@ export function addGridAndRulers(canvas) {
     selectable: false,
     evented: false,
   });
-  horizontalRuler.isGridOrRuler = true;
   canvas.add(horizontalRuler);
-
+  canvas.sendObjectBackwards(horizontalRuler)
+  horizontalRuler.isGridOrRuler = true;
   // Vertical ruler (left)
   const verticalRuler = new fabric.Rect({
     left: -20,
@@ -1175,7 +1177,7 @@ const DesignCanvas = ({
       // Add grid and rulers (only once during initialization) with a small delay
       setTimeout(() => {
         addGridAndRulers(canvas);
-      }, 50);
+      },500);
 
       // Initialize history stack
       canvas.history = {

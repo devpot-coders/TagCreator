@@ -12,12 +12,12 @@ const TagService = {
   },
 
   // Delete tag by ID and company_code
-  async deleteTagData(company_code,tagListDeleteId) {
+  async deleteTagData(tagListDeleteId, company_code) {
     try {
 
-      const response = await apiClient.delete("tags/delete.php",{
-        company_code,
-        id:tagListDeleteId
+      const response = await apiClient.post("tags/delete.php",{
+        "company_code" : company_code,
+        "id":tagListDeleteId
       });
       return { success: true, data: response.data };
     } catch (error) {
