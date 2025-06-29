@@ -633,11 +633,18 @@ downLeftArrow: function(left = 0, top = 0, size = this.config.defaultSize, color
 };
 
 // Add this helper function before the DesignCanvas component
+// <<<<<<< HEAD
+// function addGridAndRulers(canvas) {
+// =======
 export function addGridAndRulers(canvas) {
-  // Remove any existing grid/ruler objects
-  canvas.getObjects().forEach(obj => {
-    if (obj.isGridOrRuler) canvas.remove(obj);
-  });
+// >>>>>>> main
+  if (!canvas) return;
+  
+  // Check if grid already exists to prevent unnecessary re-creation
+  const existingGrid = canvas.getObjects().some(obj => obj.isGridOrRuler);
+  if (existingGrid) {
+    return; // Grid already exists, don't recreate
+  }
 
   const gridSize = 24;
   const gridColor = "#9ca3af";
@@ -654,6 +661,7 @@ export function addGridAndRulers(canvas) {
     });
     line.isGridOrRuler = true;
     canvas.add(line);
+    canvas.sendObjectToBack(line)
   }
 
   // Draw horizontal grid lines
@@ -666,6 +674,7 @@ export function addGridAndRulers(canvas) {
     });
     line.isGridOrRuler = true;
     canvas.add(line);
+    canvas.sendObjectToBack(line)
   }
 
   // Horizontal ruler (top)
@@ -678,9 +687,9 @@ export function addGridAndRulers(canvas) {
     selectable: false,
     evented: false,
   });
-  horizontalRuler.isGridOrRuler = true;
   canvas.add(horizontalRuler);
-
+  canvas.sendObjectBackwards(horizontalRuler)
+  horizontalRuler.isGridOrRuler = true;
   // Vertical ruler (left)
   const verticalRuler = new fabric.Rect({
     left: -20,
@@ -1132,7 +1141,11 @@ const DesignCanvas = ({
   const [coordLabel, setCoordLabel] = useState(null); // { x, y, left, top }
   const coordLabelTimeout = useRef(null);
   const [loading, setLoading] = useState(false);
+// <<<<<<< HEAD
+// =======
   const [textToolUsed, setTextToolUsed] = useState(false); // Track if textbox was added for this tool selection
+// >>>>>>> main
+  const lastLoadedConfig = useRef(null);
 
   // Initialize canvas
   useEffect(() => {
@@ -1161,8 +1174,10 @@ const DesignCanvas = ({
       // Pass the canvas instance to the parent
       onCanvasReady?.(canvas);
   
-      // Add grid and rulers
-      addGridAndRulers(canvas);
+      // Add grid and rulers (only once during initialization) with a small delay
+      setTimeout(() => {
+        addGridAndRulers(canvas);
+      },500);
 
       // Initialize history stack
       canvas.history = {
@@ -1304,236 +1319,202 @@ const DesignCanvas = ({
         }
       };
     }
-  }, [canvasSize.width, canvasSize.height]);
+  }, [, canvasSize.width, canvasSize.height]);
 
   useEffect(() => {
-    if (fabricCanvas && initialConfig) {
+    if (!fabricCanvas) return;
+
+    // Stringify for a simple deep compare (works for most cases)
+    const currentConfigStr = JSON.stringify(initialConfig || {});
+    if (lastLoadedConfig.current === currentConfigStr) {
+      // Config hasn't changed, don't reload
+      return;
+    }
+    lastLoadedConfig.current = currentConfigStr;
+
+    try {
+      // Clear existing objects first, but preserve grid
       try {
-        console.log('Loading initial config:', initialConfig);
-        // Clear existing objects first
-        try {
-          if (fabricCanvas.clear) fabricCanvas.clear();
-        } catch (e) {
-          console.error('Error clearing canvas:', e);
-        }
-        let loaded = false;
-        // 1. If initialConfig.Content is XAML
-        if (
-          typeof initialConfig === 'object' &&
-          initialConfig.Content &&
-          typeof initialConfig.Content === 'string' &&
-          initialConfig.Content.trim().startsWith('<DiagramItemCollection')
-        ) {
-          console.log('Loading XAML content from initialConfig.Content');
-          const shapes = parseXamlToFabricObjects(initialConfig.Content, fabric);
-          shapes.forEach(shape => fabricCanvas.add(shape));
-          addGridAndRulers(fabricCanvas);
-          fabricCanvas.requestRenderAll();
-          loaded = true;
-        }
-        // 2. If initialConfig.Content is Fabric.js JSON
-        else if (
-          typeof initialConfig === 'object' &&
-          initialConfig.Content &&
-          typeof initialConfig.Content === 'object' &&
-          initialConfig.Content.objects
-        ) {
-          console.log('Loading Fabric.js JSON from initialConfig.Content');
-          fabricCanvas.loadFromJSON(initialConfig.Content, () => {
-            addGridAndRulers(fabricCanvas);
-            fabricCanvas.requestRenderAll();
-            console.log('Fabric.js JSON loaded successfully');
-            loaded = true;
-          });
-        }
-        // 3. If initialConfig is Fabric.js JSON directly
-        else if (
-          typeof initialConfig === 'object' &&
-          initialConfig.objects
-        ) {
-          // Validate objects array
-          let validObjects = initialConfig.objects;
-          if (Array.isArray(validObjects)) {
-            validObjects = validObjects.filter(obj => obj && obj.type);
-          }
-          const toLoad = { ...initialConfig, objects: validObjects };
-          console.log('Loading Fabric.js JSON directly from initialConfig (validated):', toLoad);
-          fabricCanvas.loadFromJSON(toLoad, () => {
-            addGridAndRulers(fabricCanvas);
-            fabricCanvas.requestRenderAll();
-            console.log('Fabric.js JSON loaded successfully');
-            loaded = true;
-          });
-        }
-        // 3b. If initialConfig is a plain array of objects
-        else if (Array.isArray(initialConfig)) {
-          console.log('Loading from array of objects');
-          fabric.util.enlivenObjects(initialConfig, function(enlivenedObjects) {
-            enlivenedObjects.forEach(o => fabricCanvas.add(o));
-            addGridAndRulers(fabricCanvas);
-            fabricCanvas.requestRenderAll();
-          });
-          loaded = true;
-        }
-        // 4. If initialConfig has a CanvasData property (backend format)
-        else if (
-          typeof initialConfig === 'object' &&
-          initialConfig.CanvasData
-        ) {
-          console.log('Loading CanvasData from backend format');
-          let canvasData = initialConfig.CanvasData;
-          
-          // Try to parse if it's a string
-          if (typeof canvasData === 'string') {
-            try {
-              canvasData = JSON.parse(canvasData);
-            } catch (e) {
-              console.log('CanvasData is not JSON, treating as XAML');
-              if (canvasData.trim().startsWith('<DiagramItemCollection')) {
-                const shapes = parseXamlToFabricObjects(canvasData, fabric);
-                shapes.forEach(shape => fabricCanvas.add(shape));
-                addGridAndRulers(fabricCanvas);
-                fabricCanvas.requestRenderAll();
-                loaded = true;
-                return;
-              }
-            }
-          }
-          
-          // If it's a valid Fabric.js JSON
-          if (typeof canvasData === 'object' && canvasData.objects) {
-            fabricCanvas.loadFromJSON(canvasData, () => {
-              addGridAndRulers(fabricCanvas);
-              fabricCanvas.requestRenderAll();
-              console.log('CanvasData loaded successfully');
-              loaded = true;
-            });
-          }
-        }
-        // 6. If initialConfig has a config_1 property (alternative backend format)
-        else if (
-          typeof initialConfig === 'object' &&
-          initialConfig.config_1
-        ) {
-          console.log('Loading config_1 from backend format');
-          let configData = initialConfig.config_1;
-          
-          // Try to parse if it's a string
-          if (typeof configData === 'string') {
-            // If it's XAML, keep old logic
-            if (configData.trim().startsWith('<DiagramItemCollection')) {
-              const shapes = parseXamlToFabricObjects(configData, fabric);
-              shapes.forEach(shape => fabricCanvas.add(shape));
-              addGridAndRulers(fabricCanvas);
-              fabricCanvas.requestRenderAll();
-              loaded = true;
-              return;
-            }
-            // Otherwise, try to parse as array
-            try {
-              const arr = JSON.parse(configData);
-              if (Array.isArray(arr)) {
-                fabric.util.enlivenObjects(arr, function(enlivenedObjects) {
-                  enlivenedObjects.forEach(o => fabricCanvas.add(o));
-                  addGridAndRulers(fabricCanvas);
-                  fabricCanvas.requestRenderAll();
-                  loaded = true;
-                });
-                return;
-              }
-              configData = arr;
-            } catch (e) {
-              // Not JSON, not XAML, do nothing
-              addGridAndRulers(fabricCanvas);
-              fabricCanvas.requestRenderAll();
-              return;
-            }
-          }
-          // If it's a valid Fabric.js JSON
-          if (typeof configData === 'object' && configData.objects) {
-            fabricCanvas.loadFromJSON(configData, () => {
-              addGridAndRulers(fabricCanvas);
-              fabricCanvas.requestRenderAll();
-              console.log('config_1 loaded successfully');
-              loaded = true;
-            });
-          }
-        }
-        // 7. If initialConfig is a string that might be JSON
-        else if (typeof initialConfig === 'string') {
-          console.log('Attempting to parse initialConfig as JSON string');
-          try {
-            const parsedConfig = JSON.parse(initialConfig);
-            if (parsedConfig.objects) {
-              fabricCanvas.loadFromJSON(parsedConfig, () => {
-                addGridAndRulers(fabricCanvas);
-                fabricCanvas.requestRenderAll();
-                console.log('Parsed JSON string loaded successfully');
-                loaded = true;
-              });
-            } else if (parsedConfig.CanvasData) {
-              // Handle nested CanvasData
-              let canvasData = parsedConfig.CanvasData;
-              if (typeof canvasData === 'string') {
-                try {
-                  canvasData = JSON.parse(canvasData);
-                } catch (e) {
-                  console.log('Nested CanvasData is not JSON');
-                }
-              }
-              if (typeof canvasData === 'object' && canvasData.objects) {
-                fabricCanvas.loadFromJSON(canvasData, () => {
-                  addGridAndRulers(fabricCanvas);
-                  fabricCanvas.requestRenderAll();
-                  console.log('Nested CanvasData loaded successfully');
-                  loaded = true;
-                });
-              }
-            }
-          } catch (e) {
-            console.log('initialConfig is not JSON, checking if it\'s XAML');
-            if (initialConfig.trim().startsWith('<DiagramItemCollection')) {
-              const shapes = parseXamlToFabricObjects(initialConfig, fabric);
-              shapes.forEach(shape => fabricCanvas.add(shape));
-              addGridAndRulers(fabricCanvas);
-              fabricCanvas.requestRenderAll();
-              loaded = true;
-            }
-          }
-        }
-        else {
-          console.log('initialConfig format not recognized:', typeof initialConfig, initialConfig);
-          console.log('Available properties:', Object.keys(initialConfig || {}));
-          // Always add grid/rulers even if nothing loaded
-          addGridAndRulers(fabricCanvas);
-          fabricCanvas.requestRenderAll();
-        }
-        // After loading objects, always make them editable/selectable
-        setTimeout(() => {
-          try {
-            makeAllObjectsEditable(fabricCanvas);
-            fabricCanvas.requestRenderAll();
-          } catch (e) {
-            console.error('Error making objects editable:', e);
-          }
-        }, 0);
-      } catch (error) {
-        console.error('Error loading initial config:', error);
-        // Add grid and rulers even if loading fails
-        try {
-          addGridAndRulers(fabricCanvas);
-          fabricCanvas.requestRenderAll();
-        } catch (e) {
-          console.error('Error adding grid/rulers after load fail:', e);
-        }
-      }
-      // Always add grid/rulers if nothing was loaded or after loading
-      try {
-        addGridAndRulers(fabricCanvas);
-        fabricCanvas.requestRenderAll();
+        const userObjects = fabricCanvas.getObjects().filter(obj => !obj.isGridOrRuler);
+        userObjects.forEach(obj => fabricCanvas.remove(obj));
       } catch (e) {
-        console.error('Error adding grid/rulers:', e);
+        console.error('Error clearing canvas:', e);
       }
+      
+      let loaded = false;
+      
+      // Helper function to ensure grid exists after loading
+      const ensureGridExists = () => {
+        const hasGrid = fabricCanvas.getObjects().some(obj => obj.isGridOrRuler);
+        if (!hasGrid) {
+          addGridAndRulers(fabricCanvas);
+        }
+        fabricCanvas.requestRenderAll();
+      };
+      
+      // 1. If initialConfig.Content is XAML
+      if (
+        typeof initialConfig === 'object' &&
+        initialConfig.Content &&
+        typeof initialConfig.Content === 'string' &&
+        initialConfig.Content.trim().startsWith('<DiagramItemCollection')
+      ) {
+        const shapes = parseXamlToFabricObjects(initialConfig.Content, fabric);
+        shapes.forEach(shape => fabricCanvas.add(shape));
+        ensureGridExists();
+        loaded = true;
+      }
+      // 2. If initialConfig.Content is Fabric.js JSON
+      else if (
+        typeof initialConfig === 'object' &&
+        initialConfig.Content &&
+        typeof initialConfig.Content === 'object' &&
+        initialConfig.Content.objects
+      ) {
+        fabricCanvas.loadFromJSON(initialConfig.Content, () => {
+          ensureGridExists();
+        });
+        loaded = true;
+      }
+      // 3. If initialConfig is Fabric.js JSON directly
+      else if (
+        typeof initialConfig === 'object' &&
+        initialConfig.objects
+      ) {
+        let validObjects = initialConfig.objects;
+        if (Array.isArray(validObjects)) {
+          validObjects = validObjects.filter(obj => obj && obj.type);
+        }
+        const toLoad = { ...initialConfig, objects: validObjects };
+        fabricCanvas.loadFromJSON(toLoad, () => {
+          ensureGridExists();
+        });
+        loaded = true;
+      }
+      // 3b. If initialConfig is a plain array of objects
+      else if (Array.isArray(initialConfig)) {
+        fabric.util.enlivenObjects(initialConfig, function(enlivenedObjects) {
+          enlivenedObjects.forEach(o => fabricCanvas.add(o));
+          ensureGridExists();
+        });
+        loaded = true;
+      }
+      // 4. If initialConfig has a CanvasData property (backend format)
+      else if (
+        typeof initialConfig === 'object' &&
+        initialConfig.CanvasData
+      ) {
+        let canvasData = initialConfig.CanvasData;
+        if (typeof canvasData === 'string') {
+          try {
+            canvasData = JSON.parse(canvasData);
+          } catch (e) {
+            if (canvasData.trim().startsWith('<DiagramItemCollection')) {
+              const shapes = parseXamlToFabricObjects(canvasData, fabric);
+              shapes.forEach(shape => fabricCanvas.add(shape));
+              ensureGridExists();
+              loaded = true;
+              return;
+            }
+          }
+        }
+        if (typeof canvasData === 'object' && canvasData.objects) {
+          fabricCanvas.loadFromJSON(canvasData, () => {
+            ensureGridExists();
+          });
+          loaded = true;
+        }
+      }
+      // 6. If initialConfig has a config_1 property (alternative backend format)
+      else if (
+        typeof initialConfig === 'object' &&
+        initialConfig.config_1
+      ) {
+        let configData = initialConfig.config_1;
+        if (typeof configData === 'string') {
+          if (configData.trim().startsWith('<DiagramItemCollection')) {
+            const shapes = parseXamlToFabricObjects(configData, fabric);
+            shapes.forEach(shape => fabricCanvas.add(shape));
+            ensureGridExists();
+            loaded = true;
+            return;
+          }
+          try {
+            const arr = JSON.parse(configData);
+            if (Array.isArray(arr)) {
+              fabric.util.enlivenObjects(arr, function(enlivenedObjects) {
+                enlivenedObjects.forEach(o => fabricCanvas.add(o));
+                ensureGridExists();
+              });
+              loaded = true;
+              return;
+            }
+            configData = arr;
+          } catch (e) {
+            ensureGridExists();
+            return;
+          }
+        }
+        if (typeof configData === 'object' && configData.objects) {
+          fabricCanvas.loadFromJSON(configData, () => {
+            ensureGridExists();
+          });
+          loaded = true;
+        }
+      }
+      // 7. If initialConfig is a string that might be JSON
+      else if (typeof initialConfig === 'string') {
+        try {
+          const parsedConfig = JSON.parse(initialConfig);
+          if (parsedConfig.objects) {
+            fabricCanvas.loadFromJSON(parsedConfig, () => {
+              ensureGridExists();
+            });
+            loaded = true;
+          } else if (parsedConfig.CanvasData) {
+            let canvasData = parsedConfig.CanvasData;
+            if (typeof canvasData === 'string') {
+              try {
+                canvasData = JSON.parse(canvasData);
+              } catch (e) {}
+            }
+            if (typeof canvasData === 'object' && canvasData.objects) {
+              fabricCanvas.loadFromJSON(canvasData, () => {
+                ensureGridExists();
+              });
+              loaded = true;
+            }
+          }
+        } catch (e) {
+          if (initialConfig.trim().startsWith('<DiagramItemCollection')) {
+            const shapes = parseXamlToFabricObjects(initialConfig, fabric);
+            shapes.forEach(shape => fabricCanvas.add(shape));
+            ensureGridExists();
+            loaded = true;
+          }
+        }
+      }
+      else {
+        // Ensure grid exists if no config to load
+        ensureGridExists();
+      }
+      
+      setTimeout(() => {
+        try {
+          makeAllObjectsEditable(fabricCanvas);
+          fabricCanvas.requestRenderAll();
+        } catch (e) {
+          console.error('Error making objects editable:', e);
+        }
+      }, 0);
+    } catch (error) {
+      console.error('Error loading initial config:', error);
+      // Ensure grid exists even if loading fails
+      const hasGrid = fabricCanvas.getObjects().some(obj => obj.isGridOrRuler);
+      if (!hasGrid) {
+        addGridAndRulers(fabricCanvas);
+      }
+      fabricCanvas.requestRenderAll();
     }
   }, [fabricCanvas, initialConfig]);
 
@@ -2313,6 +2294,8 @@ const DesignCanvas = ({
       onToolChange("select");
     }
 
+// <<<<<<< HEAD
+// =======
     // if (activeTool === "barcode") {
     //   // Create a temporary canvas for JsBarcode
     //   const tempCanvas = document.createElement('canvas');
@@ -2362,6 +2345,7 @@ const DesignCanvas = ({
     //   });
     // }
 
+// >>>>>>> main
 
     if (activeTool === 'qrcode') {
       console.log('QR code tool activated. Generating QR code...');
@@ -2407,8 +2391,15 @@ const DesignCanvas = ({
     if (!fabricCanvas) return;
     try {
       setLoading(true);
+      // Remove grid/ruler objects before export
+      const gridObjects = fabricCanvas.getObjects().filter(obj => obj.isGridOrRuler);
+      gridObjects.forEach(obj => fabricCanvas.remove(obj));
       const multiplier = 3.125;
       const dataURL = fabricCanvas.toDataURL({ format: 'png', multiplier });
+      // Re-add grid/ruler objects after export
+      addGridAndRulers(fabricCanvas);
+      fabricCanvas.requestRenderAll();
+
       const link = document.createElement('a');
       link.href = dataURL;
       link.download = 'tag-300dpi.png';
@@ -2428,8 +2419,15 @@ const DesignCanvas = ({
     if (!fabricCanvas) return;
     try {
       setLoading(true);
+      // Remove grid/ruler objects before export
+      const gridObjects = fabricCanvas.getObjects().filter(obj => obj.isGridOrRuler);
+      gridObjects.forEach(obj => fabricCanvas.remove(obj));
       const multiplier = 3.125;
       const dataURL = fabricCanvas.toDataURL({ format: 'png', multiplier });
+      // Re-add grid/ruler objects after export
+      addGridAndRulers(fabricCanvas);
+      fabricCanvas.requestRenderAll();
+
       const width = fabricCanvas.getWidth() * multiplier;
       const height = fabricCanvas.getHeight() * multiplier;
       const pxToPt = px => (px * 72) / 300;
@@ -2447,7 +2445,6 @@ const DesignCanvas = ({
       setLoading(false);
     }
   };
-
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -2486,12 +2483,16 @@ const DesignCanvas = ({
           }
         }}
       >
+{/* <<<<<<< HEAD
+        <canvas ref={canvasRef} className="block" />
+======= */}
         <canvas
           ref={canvasRef}
           className="block"
           width={canvasSize.width}
           height={canvasSize.height}
         />
+{/* >>>>>>> main */}
         {/* Coordinate label overlay */}
         {coordLabel && (
           <div
@@ -2573,6 +2574,8 @@ export function getUserObjectsForSaving(fabricCanvas) {
   return JSON.stringify(serialized);
 }
 
+// <<<<<<< HEAD
+// =======
 // Utility to recursively set objects editable/selectable
 function makeAllObjectsEditable(canvas) {
   if (!canvas) return;
@@ -2590,4 +2593,5 @@ function makeAllObjectsEditable(canvas) {
   canvas.getObjects().forEach(setEditable);
 }
 
+// >>>>>>> main
 

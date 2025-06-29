@@ -24,7 +24,10 @@ import ShapesPanel from "../components/ShapesPanel";
 import Calculate from "../components/Calculate";
 import { useTag } from "../utils/TagService/TagHooks/useTag";
 import { apiClient } from "../auth/apiClient";
+import { useTemplate } from "../context/TemplateContext";
+
 import { addGridAndRulers } from "../components/DesignCanvas";
+
 // // import { PropertiesPanel } from "../components/PropertiesPanel";
 
 
@@ -81,6 +84,7 @@ function EditorCanvas() {
   const location = useLocation();
   const { template, orientation } = location.state || { template: "1UP", orientation: "portrait" };
   const navigate = useNavigate();
+  const { setTemplateName: setContextTemplateName, setIsEditMode } = useTemplate();
   
   const [activeTool, setActiveTool] = useState("select");
   const [selectedObject, setSelectedObject] = useState(null);
@@ -116,10 +120,13 @@ function EditorCanvas() {
   const { fetchTagById } = useTag("afhstXDev");
 
   const [initialConfig, setInitialConfig] = useState(null);
+// <<<<<<< HEAD
+// =======
   const [canvasConfig, setCanvasConfig] = useState(null);
 
   // Add a state to track if editing or creating
   const isEditMode = Boolean((location.state && (location.state.id || (initialConfig && initialConfig.id))));
+// >>>>>>> main
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -735,6 +742,12 @@ function EditorCanvas() {
     console.log("Object pasted successfully");
   };
 
+// <<<<<<< HEAD
+//   const handleSave = async () => {
+//     if (!fabricCanvas) return;
+//     // If editing (coming from List), do not show template name dialog, just save
+//     if (location.state && location.state.id && initialConfig) {
+// =======
   // Add a handleSaveAsNew function that always prompts for a new name and creates a new template
   const handleSaveAsNew = () => {
     setShowTemplateNameDialog(true);
@@ -744,6 +757,7 @@ function EditorCanvas() {
   const handleSave = async () => {
     if (!fabricCanvas) return;
     if (isEditMode) {
+// >>>>>>> main
       // Build config_1 as a stringified object with all canvas info
       const config_1 = JSON.stringify({
         objects: getUserObjectsForSaving(fabricCanvas),
@@ -772,9 +786,14 @@ function EditorCanvas() {
         alert("Failed to update template: " + (error.message || "Unknown error"));
       }
       return;
+// <<<<<<< HEAD
+// =======
     } else {
       setShowTemplateNameDialog(true);
+// >>>>>>> main
     }
+    // Otherwise, show template name dialog for new templates
+    setShowTemplateNameDialog(true);
   };
 
   const handleDragStart = (tool) => {
@@ -831,6 +850,9 @@ function EditorCanvas() {
           const data = await apiClient.post("tags/addEdit.php", payload);
           setShowTemplateNameDialog(false);
           setTemplateName("");
+          // Update the context to show the saved template name
+          setContextTemplateName(templateName);
+          setIsEditMode(true);
           navigate("/");
           return;
         } catch (error) {
@@ -848,16 +870,26 @@ function EditorCanvas() {
   };
 
   useEffect(() => {
+// <<<<<<< HEAD
+//     // Only fetch once on mount, not on every location.state change
+//     if (location.state && location.state.id) {
+//       fetchTagById(location.state.id).then((data) => {
+//         console.log(data.records)
+// =======
     if (location.state && location.state.templateData) {
       setInitialConfig(location.state.templateData);
     } else if (location.state && location.state.id) {
       fetchTagById(location.state.id).then((data) => {
+// >>>>>>> main
         if (data && data.records && data.records[0]) {
           setInitialConfig(data.records[0]);
         }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+// <<<<<<< HEAD
+//   }, []); // Empty dependency array to prevent continuous API calls
+// =======
   }, [location.state]);
 
   useEffect(() => {
@@ -872,6 +904,31 @@ function EditorCanvas() {
     }
   }, [initialConfig]);
 
+  // Update template context when initialConfig changes
+  useEffect(() => {
+    if (initialConfig) {
+      // If we have initialConfig, we're in edit mode
+      setIsEditMode(true);
+      // Set the template name from the initialConfig
+      if (initialConfig.template_name) {
+        setContextTemplateName(initialConfig.template_name);
+      }
+    } else {
+      // If no initialConfig, we're creating a new template
+      setIsEditMode(false);
+      setContextTemplateName('');
+    }
+  }, [initialConfig, setIsEditMode, setContextTemplateName]);
+
+  // Cleanup effect to reset context when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset context when component unmounts
+      setIsEditMode(false);
+      setContextTemplateName('');
+    };
+  }, [setIsEditMode, setContextTemplateName]);
+
   // Add this function to handle Print navigation
   const handlePrint = () => {
     if (!fabricCanvas) return;
@@ -882,6 +939,10 @@ function EditorCanvas() {
   };
 
   // Before rendering DesignCanvas, parse config_1 if needed
+// <<<<<<< HEAD
+//   let canvasConfig = "";
+// =======
+// >>>>>>> main
   useEffect(() => {
     if (initialConfig?.config_1) {
       try {
@@ -890,20 +951,43 @@ function EditorCanvas() {
         if (typeof objects === 'string') {
           objects = JSON.parse(objects);
         }
+// <<<<<<< HEAD
+//         // Validate objects array
+// =======
+// >>>>>>> main
         if (Array.isArray(objects)) {
           const validObjects = objects
             .filter(obj => obj && obj.type)
             .map(obj => ({ ...obj, type: obj.type.toLowerCase() }));
+// <<<<<<< HEAD
+//           canvasConfig = { objects: validObjects };
+//         } else if (objects && typeof objects === 'object') {
+//           canvasConfig = objects;
+//         } else {
+//           canvasConfig = {};
+// =======
           setCanvasConfig({ objects: validObjects });
         } else if (objects && typeof objects === 'object') {
           setCanvasConfig(objects);
         } else {
           setCanvasConfig({});
+// >>>>>>> main
         }
         // Update canvas size and orientation if present
         if (parsed.canvas_width && parsed.canvas_height) {
           setCanvasSize({ width: parsed.canvas_width, height: parsed.canvas_height });
         }
+// <<<<<<< HEAD
+//         if (parsed.orientation) {
+//           // Only update if orientation is present
+//         }
+//       } catch {
+//         canvasConfig = initialConfig.config_1;
+//       }
+//     }
+//     // Debug log
+//     console.log('canvasConfig to load:', canvasConfig);
+// =======
       } catch {
         setCanvasConfig(initialConfig.config_1);
       }
@@ -912,6 +996,7 @@ function EditorCanvas() {
     }
     // Debug log
     // console.log('canvasConfig to load:', canvasConfig);
+// >>>>>>> main
   }, [initialConfig]);
 
   return (
@@ -968,42 +1053,24 @@ function EditorCanvas() {
 
           <div className="flex items-center space-x-5">
             <div className="flex flex-col items-center space-y-1">
-              {isEditMode ? (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSave}
-                >
-                  <Save className="scale-150" color="black" />
-                  Update
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSave}
-                >
-                  <Save className="scale-150" color="black" />
-                  Save
-                </Button>
-              )}
-              {isEditMode && (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSaveAsNew}
-                >
-                  <Save className="scale-150" color="black" />
-                  Save As New
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex *:items-center justify-center hover:bg-gray-400"
+                onClick={handleSave}
+              >
+                <Save className="scale-150" color="black" />
+                
+              </Button>
+              <p className="text-xs">Save</p>
             </div>
             <div className="flex flex-col items-center space-y-1">
               <Button
                 variant="outline"
                 className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
                 onClick={handlePrint}
+
                 // onClick={handleExportPDF}
+
               >
                 <Printer className="scale-150" color="black" />
               </Button>
@@ -1076,7 +1143,11 @@ function EditorCanvas() {
                   strokeWidth={strokeWidth}
                   clipboard={clipboard}
                   setClipboard={setClipboard}
+// <<<<<<< HEAD
+//                   initialConfig={canvasConfig}
+// =======
                   initialConfig={canvasConfig || { objects: [] }}
+/* >>>>>>> main */
                 />
               </div>
             </div>
