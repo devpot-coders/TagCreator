@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,28 +12,31 @@ import Print from "./pages/Print";
 import EditorCanvas from "./pages/EditorCanvas";
 import ProtectedRoute from "./utils/common/ProtectedRoutes";
 import CanvasToPDF from "./components/CanvasToPDF";
+import { TemplateProvider } from "./context/TemplateContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />}>
-            <Route path="/editorCanvas" element={<ProtectedRoute><EditorCanvas /></ProtectedRoute>} />
-            <Route index path="/" element={<ProtectedRoute><List /></ProtectedRoute>} />
-            <Route path="/storetags" element={<ProtectedRoute><StoreTags /></ProtectedRoute>} />
-            <Route path="/print" element={<ProtectedRoute><Print /></ProtectedRoute>} />
-            <Route path="/canvasToPDF" element={<ProtectedRoute><CanvasToPDF /></ProtectedRoute>} />
-          </Route>
-            <Route path="/login" element={<Login />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <TemplateProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />}>
+              <Route path="/editorCanvas" element={<ProtectedRoute><EditorCanvas /></ProtectedRoute>} />
+              <Route index path="/" element={<ProtectedRoute><List /></ProtectedRoute>} />
+              <Route path="/storetags" element={<ProtectedRoute><StoreTags /></ProtectedRoute>} />
+              <Route path="/print" element={<ProtectedRoute><Print /></ProtectedRoute>} />
+              <Route path="/canvasToPDF" element={<ProtectedRoute><CanvasToPDF /></ProtectedRoute>} />
+            </Route>
+              <Route path="/login" element={<Login />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TemplateProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

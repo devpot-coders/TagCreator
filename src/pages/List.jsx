@@ -1134,7 +1134,7 @@ function List() {
 
                   <TableCell>
                     <Button 
-                      className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-600 text-black transition"
+                      className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition"
 
                       onClick={() => navigate("/editorCanvas", { state: { id: tag.id } })}
 

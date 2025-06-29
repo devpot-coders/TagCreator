@@ -24,6 +24,7 @@ import ShapesPanel from "../components/ShapesPanel";
 import Calculate from "../components/Calculate";
 import { useTag } from "../utils/TagService/TagHooks/useTag";
 import { apiClient } from "../auth/apiClient";
+import { useTemplate } from "../context/TemplateContext";
 
 import { addGridAndRulers } from "../components/DesignCanvas";
 
@@ -83,6 +84,7 @@ function EditorCanvas() {
   const location = useLocation();
   const { template, orientation } = location.state || { template: "1UP", orientation: "portrait" };
   const navigate = useNavigate();
+  const { setTemplateName: setContextTemplateName, setIsEditMode } = useTemplate();
   
   const [activeTool, setActiveTool] = useState("select");
   const [selectedObject, setSelectedObject] = useState(null);
@@ -765,20 +767,7 @@ function EditorCanvas() {
         template: template,
       });
       const payload = {
-//         company_code: "afhstXDev",
-// <<<<<<< HEAD
-//         id: initialConfig.id || location.state.id,
-//         template_name: initialConfig.template_name || "",
-//         page_size: initialConfig.page_size || "A4",
-//         template_html: initialConfig.template_html || "",
-//         created_by: initialConfig.created_by || "Admin",
-//         updated_by: "Admin",
-//         config_1,
-//         config_2: initialConfig.config_2 || "",
-//       };
-//       try {
-//        const response = await apiClient.post("tags/addEdit.php", payload);
-// =======
+        company_code: "afhstXDev",
         id: (initialConfig && initialConfig.id) || location.state.id,
         template_name: (initialConfig && initialConfig.template_name) || "",
         page_size: (initialConfig && initialConfig.page_size) || "A4",
@@ -790,7 +779,6 @@ function EditorCanvas() {
       };
       try {
         const response = await apiClient.post("tags/addEdit.php", payload);
-// >>>>>>> main
         if(response) {
           window.location.href = "/";
         }
@@ -862,6 +850,9 @@ function EditorCanvas() {
           const data = await apiClient.post("tags/addEdit.php", payload);
           setShowTemplateNameDialog(false);
           setTemplateName("");
+          // Update the context to show the saved template name
+          setContextTemplateName(templateName);
+          setIsEditMode(true);
           navigate("/");
           return;
         } catch (error) {
@@ -900,7 +891,6 @@ function EditorCanvas() {
 //   }, []); // Empty dependency array to prevent continuous API calls
 // =======
   }, [location.state]);
-// >>>>>>> main
 
   useEffect(() => {
     if (initialConfig && initialConfig.CanvasConfig) {
@@ -913,6 +903,31 @@ function EditorCanvas() {
       }
     }
   }, [initialConfig]);
+
+  // Update template context when initialConfig changes
+  useEffect(() => {
+    if (initialConfig) {
+      // If we have initialConfig, we're in edit mode
+      setIsEditMode(true);
+      // Set the template name from the initialConfig
+      if (initialConfig.template_name) {
+        setContextTemplateName(initialConfig.template_name);
+      }
+    } else {
+      // If no initialConfig, we're creating a new template
+      setIsEditMode(false);
+      setContextTemplateName('');
+    }
+  }, [initialConfig, setIsEditMode, setContextTemplateName]);
+
+  // Cleanup effect to reset context when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset context when component unmounts
+      setIsEditMode(false);
+      setContextTemplateName('');
+    };
+  }, [setIsEditMode, setContextTemplateName]);
 
   // Add this function to handle Print navigation
   const handlePrint = () => {
@@ -1038,35 +1053,15 @@ function EditorCanvas() {
 
           <div className="flex items-center space-x-5">
             <div className="flex flex-col items-center space-y-1">
-              {isEditMode ? (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSave}
-                >
-                  <Save className="scale-150" color="black" />
-                  Update
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSave}
-                >
-                  <Save className="scale-150" color="black" />
-                  Save
-                </Button>
-              )}
-              {isEditMode && (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex items-center justify-center hover:bg-gray-400"
-                  onClick={handleSaveAsNew}
-                >
-                  <Save className="scale-150" color="black" />
-                  Save As New
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="bg-gray-100 text-gray-700 p-4 rounded-full h-12 w-12 flex *:items-center justify-center hover:bg-gray-400"
+                onClick={handleSave}
+              >
+                <Save className="scale-150" color="black" />
+                
+              </Button>
+              <p className="text-xs">Save</p>
             </div>
             <div className="flex flex-col items-center space-y-1">
               <Button
@@ -1152,7 +1147,7 @@ function EditorCanvas() {
 //                   initialConfig={canvasConfig}
 // =======
                   initialConfig={canvasConfig || { objects: [] }}
-{/* >>>>>>> main */}
+/* >>>>>>> main */
                 />
               </div>
             </div>

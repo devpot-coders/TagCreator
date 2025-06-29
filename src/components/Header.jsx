@@ -1,8 +1,13 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, Download, Upload, Undo, Redo } from "lucide-react";
+import { useTemplate } from "@/context/TemplateContext";
+import { useLocation } from "react-router-dom";
 
 export const Header = () => {
+  const { templateName, isEditMode } = useTemplate();
+  const location = useLocation();
+
   const handleUndo = () => {
     const canvas = document.querySelector("canvas");
     if (canvas && canvas.fabricCanvas) {
@@ -47,11 +52,29 @@ export const Header = () => {
     return canvas && canvas.fabricCanvas && canvas.fabricCanvas.canRedo;
   };
 
+  // Determine what to display in the header
+  const getDisplayName = () => {
+    // Only show template name if we're on the EditorCanvas page
+    if (location.pathname === "/editorCanvas") {
+      if (isEditMode && templateName) {
+        return templateName;
+      } else if (isEditMode) {
+        return "Editing Template";
+      } else {
+        return "New Template";
+      }
+    }
+    // For other pages, just show "Tag Designer"
+    return "";
+  };
+
   return (
     <header className="w-full bg-[#F09536] px-6 py-3" >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold text-foreground">Tag Designer</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            Tag Designer{getDisplayName() ? ` : ${getDisplayName()}` : ""}
+          </h1>
           <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
