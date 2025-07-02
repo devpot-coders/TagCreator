@@ -305,7 +305,7 @@ function List() {
 
   const [ deleted, setDeleted ] = useState("")
 
-  const [company_code,setCompany_code] = useState("afhstXDev")
+  const [company_code,setCompany_code] = useState(localStorage.getItem('company_code') || '')
 
   const [loading, setLoading] = useState(true);
 
@@ -1061,6 +1061,29 @@ function List() {
     }
     setLoading(false);
 
+
+  };
+
+  const handleClone = async (id) => {
+    setLoading(true);
+    try {
+      const response = await fetchTagById(id);
+      if (response && response.records && response.records[0]) {
+        // Prepare the cloned data
+        const clonedTemplate = {
+          ...response.records[0],
+          id: 0, // New template
+          template_name: '', // Clear name for user to fill
+        };
+        navigate('/editorCanvas', { state: { templateData: clonedTemplate, isClone: true } });
+      } else {
+        alert('Template not found.');
+      }
+    } catch (error) {
+      alert('Failed to fetch template for cloning.');
+    }
+    setLoading(false);
+
   };
 
   return (
@@ -1147,7 +1170,8 @@ function List() {
                   </TableCell>
 
                   <TableCell>
-                    <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition">
+                    <Button className="flex items-center gap-1 px-2 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400 text-black transition"
+                      onClick={() => handleClone(tag.id)}>
                       <FiCopy className="text-sm" />
                       Clone
                     </Button>

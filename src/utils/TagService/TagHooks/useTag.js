@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import TagService from '../Tagservice';
 
-export function useTag(company_code = 'afhstXDev') {
+export function useTag(company_code = localStorage.getItem('company_code') || '') {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

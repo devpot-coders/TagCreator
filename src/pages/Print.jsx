@@ -376,8 +376,9 @@ const Print = () => {
   useEffect(() => {
     const handleAllCategorySubCategoryList = async () => {
       try {
-        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/category/list.php?company_code=afhstXDev", {
-          params: { company_code: 'afhstXDev' }
+        const company_code = localStorage.getItem('company_code') || '';
+        const response = await axios.get(`https://retailpos.iconnectgroup.com/Api/category/list.php?company_code=${company_code}`, {
+          params: { company_code }
         });
         // Set categories and subCategories from API response
         setCategories(response.data.category.map(cat => cat.category_name));
@@ -428,19 +429,14 @@ const Print = () => {
     const fetchInventory = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=afhstXDev", {
-          params: { company_code: 'afhstXDev' }
+        const company_code = localStorage.getItem('company_code') || '';
+        const response = await axios.get(`https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=${company_code}`, {
+          params: { company_code }
         });
         // Map API data to table columns
         const mapped = (response.data.records || []).map((item, idx) => ({
-          id: item.inventory_id || idx,
-          bc: item.inventory_id || '',
-          itemId: item.item_id || '',
-          description: item.description_1 || item.description_2 || '',
-          mainCategory: item.main_category_name || '',
-          subCategory: item.sub_category_name || '',
-          store: item.store_name || '',
-          supplier: item.supplier_name || '',
+          ...item,
+          id: item.inventory_id || idx, // keep this for internal use if needed
         }));
         setTableData(mapped);
         setFilteredData(mapped);
@@ -1708,7 +1704,7 @@ const handleOpenCalculator = () => {
 
   const location = useLocation();
   const { templateJSON, template, orientation, canvasSize, selectedItems: initialSelectedItems } = location.state || {};
-  const [selectedItems, setSelectedItems] = useState(initialSelectedItems || []);
+  const [selectedItems, setSelectedItems] = useState([]);
   const [templateData] = useState(templateJSON);
   const [canvasDims] = useState(canvasSize || { width: 800, height: 600 });
   const [exporting, setExporting] = useState(false);
@@ -2046,7 +2042,7 @@ const handleOpenCalculator = () => {
             ) : (
               currentItems.map((item, index) => (
                 <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
                     <input
                       type="checkbox"
                       checked={selectedItems.some(i => i.id === item.id)}
@@ -2055,25 +2051,25 @@ const handleOpenCalculator = () => {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.bc}
+                    {item.bc || item.inventory_id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.itemId}
+                    {item.itemId || item.item_id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.description}
+                    {item.description || item.description_1 || item.description_2}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.mainCategory}
+                    {item.mainCategory || item.main_category_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.subCategory}
+                    {item.subCategory || item.sub_category_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.store}
+                    {item.store || item.store_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.supplier}
+                    {item.supplier || item.supplier_name}
                   </td>
                 </tr>
               ))

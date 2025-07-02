@@ -84,7 +84,9 @@ function EditorCanvas() {
   const location = useLocation();
   const { template, orientation } = location.state || { template: "1UP", orientation: "portrait" };
   const navigate = useNavigate();
-  const { setTemplateName: setContextTemplateName, setIsEditMode } = useTemplate();
+
+  const { setTemplateName: setContextTemplateName, setIsEditMode, isEditMode } = useTemplate();
+
   
   const [activeTool, setActiveTool] = useState("select");
   const [selectedObject, setSelectedObject] = useState(null);
@@ -117,16 +119,16 @@ function EditorCanvas() {
   const [showTemplateNameDialog, setShowTemplateNameDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
 
-  const { fetchTagById } = useTag("afhstXDev");
+  const { fetchTagById } = useTag(localStorage.getItem("company_code"));
 
   const [initialConfig, setInitialConfig] = useState(null);
 // <<<<<<< HEAD
 // =======
   const [canvasConfig, setCanvasConfig] = useState(null);
 
-  // Add a state to track if editing or creating
-  const isEditMode = Boolean((location.state && (location.state.id || (initialConfig && initialConfig.id))));
-// >>>>>>> main
+
+  const isClone = location.state && location.state.isClone;
+
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -208,7 +210,7 @@ function EditorCanvas() {
       console.log('Canvas size updated, objects preserved');
 
       try {
-        addGridAndRulers(fabricCanvas);
+        // addGridAndRulers(fabricCanvas);
         fabricCanvas.requestRenderAll();
       } catch (e) {
         console.error('Error adding grid/rulers after resize:', e);
@@ -756,41 +758,44 @@ function EditorCanvas() {
   // In handleSave, only update if in edit mode, otherwise create new
   const handleSave = async () => {
     if (!fabricCanvas) return;
-    if (isEditMode) {
-// >>>>>>> main
-      // Build config_1 as a stringified object with all canvas info
-      const config_1 = JSON.stringify({
-        objects: getUserObjectsForSaving(fabricCanvas),
-        canvas_width: canvasSize.width,
-        canvas_height: canvasSize.height,
-        orientation: orientation,
-        template: template,
-      });
-      const payload = {
-        company_code: "afhstXDev",
-        id: (initialConfig && initialConfig.id) || location.state.id,
-        template_name: (initialConfig && initialConfig.template_name) || "",
-        page_size: (initialConfig && initialConfig.page_size) || "A4",
-        template_html: (initialConfig && initialConfig.template_html) || "",
-        created_by: (initialConfig && initialConfig.created_by) || "Admin",
-        updated_by: "Admin",
-        config_1,
-        config_2: (initialConfig && initialConfig.config_2) || "",
-      };
-      try {
-        const response = await apiClient.post("tags/addEdit.php", payload);
-        if(response) {
-          window.location.href = "/";
-        }
-      } catch (error) {
-        alert("Failed to update template: " + (error.message || "Unknown error"));
-      }
-      return;
-// <<<<<<< HEAD
-// =======
-    } else {
+
+    // Always prompt for name if cloning
+    if (isClone) {
       setShowTemplateNameDialog(true);
-// >>>>>>> main
+      return;
+    }
+    // Show name dialog if creating new
+    if (!isEditMode) {
+      setShowTemplateNameDialog(true);
+      return;
+    }
+    // Otherwise, update existing template
+    const config_1 = JSON.stringify({
+      objects: getUserObjectsForSaving(fabricCanvas),
+      canvas_width: canvasSize.width,
+      canvas_height: canvasSize.height,
+      orientation: orientation,
+      template: template,
+    });
+    const payload = {
+      company_code: localStorage.getItem('company_code') || '',
+      id: (initialConfig && initialConfig.id) || location.state.id,
+      template_name: (initialConfig && initialConfig.template_name) || "",
+      page_size: (initialConfig && initialConfig.page_size) || "A4",
+      template_html: (initialConfig && initialConfig.template_html) || "",
+      created_by: (initialConfig && initialConfig.created_by) || "Admin",
+      updated_by: "Admin",
+      config_1,
+      config_2: (initialConfig && initialConfig.config_2) || "",
+    };
+    try {
+      const response = await apiClient.post("tags/addEdit.php", payload);
+      if(response) {
+        window.location.href = "/";
+      }
+    } catch (error) {
+      alert("Failed to update template: " + (error.message || "Unknown error"));
+
     }
     // Otherwise, show template name dialog for new templates
     setShowTemplateNameDialog(true);
@@ -827,7 +832,6 @@ function EditorCanvas() {
   const handleTemplateNameSubmit = async () => {
     if (templateName.trim()) {
       if (fabricCanvas) {
-        // Build config_1 as a stringified object with all canvas info
         const config_1 = JSON.stringify({
           objects: getUserObjectsForSaving(fabricCanvas),
           canvas_width: canvasSize.width,
@@ -836,7 +840,7 @@ function EditorCanvas() {
           template: template,
         });
         const payload = {
-          company_code: "afhstXDev",
+          company_code: localStorage.getItem('company_code') || '',
           id: 0,
           template_name: templateName,
           page_size: "A4",
@@ -850,7 +854,7 @@ function EditorCanvas() {
           const data = await apiClient.post("tags/addEdit.php", payload);
           setShowTemplateNameDialog(false);
           setTemplateName("");
-          // Update the context to show the saved template name
+
           setContextTemplateName(templateName);
           setIsEditMode(true);
           navigate("/");
@@ -907,18 +911,20 @@ function EditorCanvas() {
   // Update template context when initialConfig changes
   useEffect(() => {
     if (initialConfig) {
-      // If we have initialConfig, we're in edit mode
-      setIsEditMode(true);
-      // Set the template name from the initialConfig
+
+      // If we have initialConfig, we're in edit mode unless it's a clone
+      setIsEditMode(!isClone && Boolean(initialConfig.id));
+
       if (initialConfig.template_name) {
         setContextTemplateName(initialConfig.template_name);
       }
     } else {
-      // If no initialConfig, we're creating a new template
+
       setIsEditMode(false);
       setContextTemplateName('');
     }
-  }, [initialConfig, setIsEditMode, setContextTemplateName]);
+  }, [initialConfig, setIsEditMode, setContextTemplateName, isClone]);
+
 
   // Cleanup effect to reset context when component unmounts
   useEffect(() => {
@@ -994,9 +1000,11 @@ function EditorCanvas() {
     } else {
       setCanvasConfig(null);
     }
+
     // Debug log
     // console.log('canvasConfig to load:', canvasConfig);
 // >>>>>>> main
+
   }, [initialConfig]);
 
   return (
@@ -1113,7 +1121,7 @@ function EditorCanvas() {
           />
 
           {/* Canvas and Rulers Container */}
-          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[75vh] overflow-y-auto overflow-x-hidden" ref={containerRef}>
+          <div className="flex flex-col relative w-fit mx-auto mt-5 h-[70vh] overflow-y-auto overflow-x-hidden" ref={containerRef}>
             <HorizontalRuler
               width={canvasSize.width}
               mouseX={mouseX}
@@ -1130,25 +1138,25 @@ function EditorCanvas() {
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
               <div className="flex-1 flex justify-center canvas-container-wrapper"
-              //  ref={designCanvasRef}
-               >
-                <DesignCanvas
-                  activeTool={activeTool}
-                  canvasSize={canvasSize}
-                  onObjectSelect={handleObjectSelect}
-                  onToolChange={handleToolChange}
-                  selectedImage={selectedImage}
-                  onCanvasReady={setFabricCanvas}
-                  strokeColor={strokeColor}
-                  strokeWidth={strokeWidth}
-                  clipboard={clipboard}
-                  setClipboard={setClipboard}
-// <<<<<<< HEAD
-//                   initialConfig={canvasConfig}
-// =======
-                  initialConfig={canvasConfig || { objects: [] }}
-/* >>>>>>> main */
-                />
+
+              >
+                {canvasSize.width && canvasSize.height && (
+                  <DesignCanvas
+                    key={`${canvasSize.width}x${canvasSize.height}`}
+                    activeTool={activeTool}
+                    canvasSize={canvasSize}
+                    onObjectSelect={handleObjectSelect}
+                    onToolChange={handleToolChange}
+                    selectedImage={selectedImage}
+                    onCanvasReady={setFabricCanvas}
+                    strokeColor={strokeColor}
+                    strokeWidth={strokeWidth}
+                    clipboard={clipboard}
+                    setClipboard={setClipboard}
+                    initialConfig={canvasConfig || { objects: [] }}
+                  />
+                )}
+
               </div>
             </div>
           </div>
