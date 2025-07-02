@@ -1061,6 +1061,7 @@ function List() {
     }
     setLoading(false);
 
+
   };
 
   const handleClone = async (id) => {
@@ -1082,6 +1083,7 @@ function List() {
       alert('Failed to fetch template for cloning.');
     }
     setLoading(false);
+
   };
 
   return (

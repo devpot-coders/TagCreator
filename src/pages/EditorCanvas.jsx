@@ -84,7 +84,9 @@ function EditorCanvas() {
   const location = useLocation();
   const { template, orientation } = location.state || { template: "1UP", orientation: "portrait" };
   const navigate = useNavigate();
+
   const { setTemplateName: setContextTemplateName, setIsEditMode, isEditMode } = useTemplate();
+
   
   const [activeTool, setActiveTool] = useState("select");
   const [selectedObject, setSelectedObject] = useState(null);
@@ -120,9 +122,13 @@ function EditorCanvas() {
   const { fetchTagById } = useTag(localStorage.getItem("company_code"));
 
   const [initialConfig, setInitialConfig] = useState(null);
+// <<<<<<< HEAD
+// =======
   const [canvasConfig, setCanvasConfig] = useState(null);
 
+
   const isClone = location.state && location.state.isClone;
+
 
   const handleObjectSelect = (object) => {
     setSelectedObject(object);
@@ -738,6 +744,12 @@ function EditorCanvas() {
     console.log("Object pasted successfully");
   };
 
+// <<<<<<< HEAD
+//   const handleSave = async () => {
+//     if (!fabricCanvas) return;
+//     // If editing (coming from List), do not show template name dialog, just save
+//     if (location.state && location.state.id && initialConfig) {
+// =======
   // Add a handleSaveAsNew function that always prompts for a new name and creates a new template
   const handleSaveAsNew = () => {
     setShowTemplateNameDialog(true);
@@ -746,6 +758,7 @@ function EditorCanvas() {
   // In handleSave, only update if in edit mode, otherwise create new
   const handleSave = async () => {
     if (!fabricCanvas) return;
+
     // Always prompt for name if cloning
     if (isClone) {
       setShowTemplateNameDialog(true);
@@ -782,7 +795,10 @@ function EditorCanvas() {
       }
     } catch (error) {
       alert("Failed to update template: " + (error.message || "Unknown error"));
+
     }
+    // Otherwise, show template name dialog for new templates
+    setShowTemplateNameDialog(true);
   };
 
   const handleDragStart = (tool) => {
@@ -838,6 +854,7 @@ function EditorCanvas() {
           const data = await apiClient.post("tags/addEdit.php", payload);
           setShowTemplateNameDialog(false);
           setTemplateName("");
+
           setContextTemplateName(templateName);
           setIsEditMode(true);
           navigate("/");
@@ -857,16 +874,26 @@ function EditorCanvas() {
   };
 
   useEffect(() => {
+// <<<<<<< HEAD
+//     // Only fetch once on mount, not on every location.state change
+//     if (location.state && location.state.id) {
+//       fetchTagById(location.state.id).then((data) => {
+//         console.log(data.records)
+// =======
     if (location.state && location.state.templateData) {
       setInitialConfig(location.state.templateData);
     } else if (location.state && location.state.id) {
       fetchTagById(location.state.id).then((data) => {
+// >>>>>>> main
         if (data && data.records && data.records[0]) {
           setInitialConfig(data.records[0]);
         }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+// <<<<<<< HEAD
+//   }, []); // Empty dependency array to prevent continuous API calls
+// =======
   }, [location.state]);
 
   useEffect(() => {
@@ -884,16 +911,20 @@ function EditorCanvas() {
   // Update template context when initialConfig changes
   useEffect(() => {
     if (initialConfig) {
+
       // If we have initialConfig, we're in edit mode unless it's a clone
       setIsEditMode(!isClone && Boolean(initialConfig.id));
+
       if (initialConfig.template_name) {
         setContextTemplateName(initialConfig.template_name);
       }
     } else {
+
       setIsEditMode(false);
       setContextTemplateName('');
     }
   }, [initialConfig, setIsEditMode, setContextTemplateName, isClone]);
+
 
   // Cleanup effect to reset context when component unmounts
   useEffect(() => {
@@ -914,6 +945,10 @@ function EditorCanvas() {
   };
 
   // Before rendering DesignCanvas, parse config_1 if needed
+// <<<<<<< HEAD
+//   let canvasConfig = "";
+// =======
+// >>>>>>> main
   useEffect(() => {
     if (initialConfig?.config_1) {
       try {
@@ -922,26 +957,54 @@ function EditorCanvas() {
         if (typeof objects === 'string') {
           objects = JSON.parse(objects);
         }
+// <<<<<<< HEAD
+//         // Validate objects array
+// =======
+// >>>>>>> main
         if (Array.isArray(objects)) {
           const validObjects = objects
             .filter(obj => obj && obj.type)
             .map(obj => ({ ...obj, type: obj.type.toLowerCase() }));
+// <<<<<<< HEAD
+//           canvasConfig = { objects: validObjects };
+//         } else if (objects && typeof objects === 'object') {
+//           canvasConfig = objects;
+//         } else {
+//           canvasConfig = {};
+// =======
           setCanvasConfig({ objects: validObjects });
         } else if (objects && typeof objects === 'object') {
           setCanvasConfig(objects);
         } else {
           setCanvasConfig({});
+// >>>>>>> main
         }
         // Update canvas size and orientation if present
         if (parsed.canvas_width && parsed.canvas_height) {
           setCanvasSize({ width: parsed.canvas_width, height: parsed.canvas_height });
         }
+// <<<<<<< HEAD
+//         if (parsed.orientation) {
+//           // Only update if orientation is present
+//         }
+//       } catch {
+//         canvasConfig = initialConfig.config_1;
+//       }
+//     }
+//     // Debug log
+//     console.log('canvasConfig to load:', canvasConfig);
+// =======
       } catch {
         setCanvasConfig(initialConfig.config_1);
       }
     } else {
       setCanvasConfig(null);
     }
+
+    // Debug log
+    // console.log('canvasConfig to load:', canvasConfig);
+// >>>>>>> main
+
   }, [initialConfig]);
 
   return (
@@ -1075,6 +1138,7 @@ function EditorCanvas() {
                 onRulerMouseLeave={handleRulerMouseLeave}
               />
               <div className="flex-1 flex justify-center canvas-container-wrapper"
+
               >
                 {canvasSize.width && canvasSize.height && (
                   <DesignCanvas
@@ -1092,6 +1156,7 @@ function EditorCanvas() {
                     initialConfig={canvasConfig || { objects: [] }}
                   />
                 )}
+
               </div>
             </div>
           </div>
