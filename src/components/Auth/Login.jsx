@@ -24,6 +24,18 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
+  // Prefill from localStorage if available
+  useEffect(() => {
+    const savedCompanyCode = localStorage.getItem('company_code') || '';
+    const savedUsername = localStorage.getItem('username') || '';
+    const savedPassword = localStorage.getItem('password') || '';
+    setFormData({
+      ClientCode: savedCompanyCode,
+      UserName: savedUsername,
+      Password: savedPassword,
+    });
+  }, []);
+
   const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -61,6 +73,10 @@ const Login = () => {
       console.log("login result:", result);
 
       if (result.success === true) {
+        // Save credentials to localStorage
+        localStorage.setItem('company_code', formData.ClientCode);
+        localStorage.setItem('username', formData.UserName);
+        localStorage.setItem('password', formData.Password);
         navigate("/");
       } else {
         setErrors({ general: result.error || "Login failed" });
