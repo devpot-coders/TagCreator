@@ -31,6 +31,7 @@ import Calculate from "../components/Calculate"
 import * as fabric  from 'fabric';
 import { useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
+import { useTag } from "../utils/TagService/TagHooks/useTag";
 
 
 
@@ -1150,33 +1151,149 @@ const handleOpenCalculator = () => {
     }
     setShowCalculator(true);
   };
-
   const handleCloseCalculator = () => {
     setShowCalculator(false);
   };
+  // Utility to recursively fix type fields to lowercase for Fabric.js
+  function fixObjectTypes(obj) {
+    if (Array.isArray(obj)) {
+      return obj.map(fixObjectTypes);
+    } else if (obj && typeof obj === 'object') {
+      const newObj = { ...obj };
+      if (newObj.type && typeof newObj.type === 'string') {
+        newObj.type = newObj.type.toLowerCase();
+      }
+      // Remove layoutManager property if present
+      if ('layoutManager' in newObj) {
+        delete newObj.layoutManager;
+      }
+      for (const key in newObj) {
+        newObj[key] = fixObjectTypes(newObj[key]);
+      }
+      return newObj;
+    }
+    return obj;
+  }
+
+  // Template validation function
+  function validateTemplateConfig(config) {
+    let valid = true;
+    if (!config || typeof config !== 'object') {
+      console.error('Template config is not an object.');
+      return false;
+    }
+    if (!Array.isArray(config.objects)) {
+      console.error('Template config is missing an objects array.');
+      valid = false;
+    }
+    if (!config.version) {
+      console.warn('Template config is missing a version property.');
+    }
+    if (Array.isArray(config.objects)) {
+      config.objects.forEach((obj, idx) => {
+        if (!obj.type) {
+          console.warn(`Object at index ${idx} is missing a type property.`);
+          valid = false;
+        }
+        // Check for required properties for visible objects
+        if (['textbox', 'rect', 'image', 'group'].includes((obj.type || '').toLowerCase())) {
+          ['left', 'top', 'width', 'height'].forEach(prop => {
+            if (typeof obj[prop] === 'undefined') {
+              console.warn(`Object of type ${obj.type} at index ${idx} is missing property: ${prop}`);
+              valid = false;
+            }
+          });
+        }
+      });
+    }
+    return valid;
+  }
+
+  // Add this helper function near the top of the file (or with other helpers)
+  function removeGridLinesByColor(canvas) {
+    const gridColor = '#9ca3af';
+    const toRemove = canvas.getObjects('line').filter(obj => obj.stroke === gridColor && obj.strokeWidth === 0.5);
+    toRemove.forEach(obj => canvas.remove(obj));
+  }
 
   const handleSaveCalculator = async (calculations) => {
     setShowCalculator(false);
     setPriceData(calculations || {});
     setExporting(true);
-    console.log('DEBUG: handleSaveCalculator called');
-    console.log('DEBUG: selectedItems:', selectedItems);
-    console.log('DEBUG: template:', template);
-    console.log('DEBUG: calculations:', calculations);
     const images = [];
+    let parsedConfig = null;
+    if (fullTemplate && fullTemplate.config_1) {
+      try {
+        parsedConfig = JSON.parse(fullTemplate.config_1);
+        if (typeof parsedConfig.objects === 'string') {
+          parsedConfig.objects = JSON.parse(parsedConfig.objects);
+        }
+        console.log('Parsed template config (beautified):', JSON.stringify(parsedConfig, null, 2));
+      } catch (e) {
+        console.error('Error parsing template config_1:', e);
+      }
+    }
     for (let i = 0; i < selectedItems.length; i++) {
       const item = selectedItems[i];
+      let tempCanvasEl = null;
       try {
-        const canvas = new fabric.Canvas(null, { width: 800, height: 1056 });
-        await new Promise(resolve => canvas.loadFromJSON(template, resolve));
+        const width = parsedConfig?.canvas_width || 800;
+        const height = parsedConfig?.canvas_height || 1056;
+        tempCanvasEl = document.createElement('canvas');
+        tempCanvasEl.width = width;
+        tempCanvasEl.height = height;
+        tempCanvasEl.style.display = 'none';
+        document.body.appendChild(tempCanvasEl);
+
+        const canvas = new fabric.Canvas(tempCanvasEl, { width, height });
+        if (parsedConfig) {
+          const fixedConfig = fixObjectTypes(parsedConfig);
+          const isValid = validateTemplateConfig(fixedConfig);
+          if (!isValid) {
+            console.error('Template config is invalid. Skipping this item.');
+            continue;
+          }
+          console.log('Final config passed to loadFromJSON:', JSON.stringify(fixedConfig, null, 2));
+          await new Promise(resolve => canvas.loadFromJSON(fixedConfig, resolve));
+          canvas.renderAll(); // Just to be sure
+          console.log("fixedConfig.objects", fixedConfig.objects)
+          console.log("After fixObjectTypes:", JSON.stringify(fixedConfig, null, 2));
+          console.log(`Canvas objects after load for item ${i}:`, canvas.getObjects());
+          // If still empty, try a minimal test config
+          if (canvas.getObjects().length === 0) {
+            const testConfig = {
+              version: "6.7.0",
+              objects: [
+                {
+                  type: "textbox",
+                  left: 100,
+                  top: 100,
+                  width: 200,
+                  height: 40,
+                  text: "Test",
+                  fill: "#000"
+                }
+              ]
+            };
+            await new Promise(resolve => canvas.loadFromJSON(testConfig, resolve));
+            console.log(`Minimal test config objects for item ${i}:`, canvas.getObjects());
+          }
+          // Remove grid lines by color before exporting image
+          removeGridLinesByColor(canvas);
+        }
         replacePlaceholders(canvas, item, calculations || {});
         removeGridAndRulers(canvas);
         const multiplier = 3.125;
         const dataURL = canvas.toDataURL({ format: 'png', multiplier });
+        console.log(`Exported dataURL length for item ${i}:`, dataURL.length);
         images.push(dataURL);
-        console.log(`DEBUG: Generated preview image for item ${item}`);
       } catch (err) {
-        console.error('DEBUG: Error generating preview for item', item, err);
+        console.error('Error generating preview for item', item, err);
+      } finally {
+        // Only remove if still attached
+        if (tempCanvasEl && tempCanvasEl.parentNode) {
+          tempCanvasEl.parentNode.removeChild(tempCanvasEl);
+        }
       }
     }
     setPreviewImages(images);
@@ -1184,7 +1301,6 @@ const handleOpenCalculator = () => {
     setShowPreview(true);
     setExporting(false);
     setPendingExportType(null);
-    console.log('DEBUG: Preview images set, showPreview should be true');
   };
 
   useEffect(() => {
@@ -1703,9 +1819,11 @@ const handleOpenCalculator = () => {
   }, [tableData]);
 
   const location = useLocation();
-  const { templateJSON, template, orientation, canvasSize, selectedItems: initialSelectedItems } = location.state || {};
+  const { template, orientation, canvasSize } = location.state || {};
+  const [fullTemplate, setFullTemplate] = useState(null);
+  const [templateId, setTemplateId] = useState(template?.id || null);
+  const { fetchTagById } = useTag();
   const [selectedItems, setSelectedItems] = useState([]);
-  const [templateData] = useState(templateJSON);
   const [canvasDims] = useState(canvasSize || { width: 800, height: 600 });
   const [exporting, setExporting] = useState(false);
 
@@ -1716,11 +1834,20 @@ const handleOpenCalculator = () => {
   }
 
   // Helper to replace placeholders in the canvas
+  const validFields = [
+    "barcode", "qrcode", "date", "id", "itemId", "modelNumber", "descriptionA", "descriptionB", "supplierName", "itemType", "mainCategory", "subCategory", "landedCost",
+    "price1", "price2", "price3", "statusType", "qty", "imageUrl", "dimensions", "packageId", "packageItems", "pay36m", "pay48m", "pay60m",
+    "packageName", "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3", "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m", "packageDimensions", "locBcl", "notes", "location", "stockId"
+  ];
+
   function replacePlaceholders(canvas, item, priceData) {
     canvas.getObjects('textbox').forEach(obj => {
       if (obj.text && obj.text.startsWith('{') && obj.text.endsWith('}')) {
         const key = obj.text.slice(1, -1);
-        obj.text = item[key] || priceData[key] || '';
+        if (validFields.includes(key)) {
+          obj.text = item[key] || priceData[key] || '';
+        }
+        // else: leave as-is, or optionally log a warning
       }
     });
     canvas.requestRenderAll();
@@ -1762,6 +1889,17 @@ const handleOpenCalculator = () => {
     setPendingExportType(type); // 'pdf' or 'print'
     setShowCalculator(true);
   };
+
+  useEffect(() => {
+    if (templateId) {
+      fetchTagById(templateId).then((data) => {
+        if (data && data.records && data.records[0]) {
+          setFullTemplate(data.records[0]);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 w-full">

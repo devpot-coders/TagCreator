@@ -2565,13 +2565,11 @@ export default DesignCanvas;
 
 // Add this utility function to extract only user objects for saving
 export function getUserObjectsForSaving(fabricCanvas) {
-  if (!fabricCanvas) return '[]';
+  if (!fabricCanvas) return [];
   // Filter out grid/ruler objects
   const userObjects = fabricCanvas.getObjects().filter(obj => !obj.isGridOrRuler);
   // Convert each object to its serializable representation
-  const serialized = userObjects.map(obj => obj.toObject());
-  // Return as a stringified array
-  return JSON.stringify(serialized);
+  return userObjects.map(obj => obj.toObject());
 }
 
 // <<<<<<< HEAD
