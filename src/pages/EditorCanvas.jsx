@@ -771,7 +771,7 @@ function EditorCanvas() {
     }
     // Otherwise, update existing template
     const config_1 = JSON.stringify({
-      objects: getUserObjectsForSaving(fabricCanvas),
+      ...fabricCanvas.toJSON(),
       canvas_width: canvasSize.width,
       canvas_height: canvasSize.height,
       orientation: orientation,
@@ -833,7 +833,7 @@ function EditorCanvas() {
     if (templateName.trim()) {
       if (fabricCanvas) {
         const config_1 = JSON.stringify({
-          objects: getUserObjectsForSaving(fabricCanvas),
+          ...fabricCanvas.toJSON(),
           canvas_width: canvasSize.width,
           canvas_height: canvasSize.height,
           orientation: orientation,
