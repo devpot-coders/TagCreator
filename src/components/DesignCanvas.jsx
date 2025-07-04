@@ -2160,14 +2160,14 @@ const DesignCanvas = ({
     if (!fabricCanvas) return;
 
     const fieldNames = [
-      "date", "id", "itemId", "modelNumber", "descriptionA", "descriptionB",
-      "supplierName", "itemType", "mainCategory", "subCategory", "landedCost",
-      "price1", "price2", "price3", "statusType", "qty", "imageUrl", "dimensions",
-      "packageId", "packageItems", "pay36m", "pay48m", "pay60m", "packageName",
-      "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3",
-      "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m",
+      "date", "id", "item_id", "model_no", "description_1", "description_2",
+      "supplier_name", "item_type", "main_category_name", "sub_category_name", "landedCost",
+      "price_1", "price_2", "price_3", "statusType", "qty", "image_url", "dimensions",
+      "package_id", "package_items", "Pay_36M", "Pay_48M", "Pay_60M", "package_name",
+      "package_desc1", "package_desc2", "package_price_1", "package_price_2", "package_price_3",
+      "package_image_url", "Pkg_Pay_36M", "Pkg_Pay_48M", "Pkg_Pay_60M",
 
-      "packageDimensions", "locBcl", "notes", "location", "stockId",
+      "pkg_dimensions", "loc_misc_bcl", "notes", "location", "stock_id",
       "barcode", "inventory_stock_ids"
     ];
 
@@ -2272,7 +2272,7 @@ const DesignCanvas = ({
         // No grouping!
       } else {
         // Non-price fields: just add the field as an editable textbox
-        const text = new fabric.Textbox(`{${activeTool}}`, {
+        const text = new fabric.Textbox(`{{${activeTool}}}`, {
 
           left: 100,
           top: 100,

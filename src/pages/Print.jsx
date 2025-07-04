@@ -1280,8 +1280,15 @@ const handleOpenCalculator = () => {
           }
           // Remove grid lines by color before exporting image
           removeGridLinesByColor(canvas);
+          console.log("Canvas objects before replacing placeholders:", canvas.getObjects('textbox').map(o => o.text));
+          console.log("Item being used for replacement:", item);
+          replacePlaceholders(canvas, item, calculations || {});
+          console.log("Canvas objects after replacing placeholders:", canvas.getObjects('textbox').map(o => o.text));
+          canvas.renderAll(); // Ensure updated text is rendered before export
+          removeGridAndRulers(canvas);
+          // Add log before export
+          console.log("Final texts before export:", canvas.getObjects('textbox').map(o => o.text));
         }
-        replacePlaceholders(canvas, item, calculations || {});
         removeGridAndRulers(canvas);
         const multiplier = 3.125;
         const dataURL = canvas.toDataURL({ format: 'png', multiplier });
@@ -1298,7 +1305,9 @@ const handleOpenCalculator = () => {
     }
     setPreviewImages(images);
     previewImagesRef.current = images;
-    setShowPreview(true);
+    // Force preview modal to refresh
+    setShowPreview(false);
+    setTimeout(() => setShowPreview(true), 0);
     setExporting(false);
     setPendingExportType(null);
   };
@@ -1835,19 +1844,67 @@ const handleOpenCalculator = () => {
 
   // Helper to replace placeholders in the canvas
   const validFields = [
-    "barcode", "qrcode", "date", "id", "itemId", "modelNumber", "descriptionA", "descriptionB", "supplierName", "itemType", "mainCategory", "subCategory", "landedCost",
-    "price1", "price2", "price3", "statusType", "qty", "imageUrl", "dimensions", "packageId", "packageItems", "pay36m", "pay48m", "pay60m",
-    "packageName", "packageDescA", "packageDescB", "packagePrice1", "packagePrice2", "packagePrice3", "packageImageUrl", "packagePay36m", "packagePay48m", "packagePay60m", "packageDimensions", "locBcl", "notes", "location", "stockId"
+    "date", "id", "item_id", "model_no", "description_1", "description_2",
+    "supplier_name", "item_type", "main_category_name", "sub_category_name", "landedCost",
+    "price_1", "price_2", "price_3", "statusType", "qty", "image_url", "dimensions",
+    "package_id", "package_items", "Pay_36M", "Pay_48M", "Pay_60M", "package_name",
+    "package_desc1", "package_desc2", "package_price_1", "package_price_2", "package_price_3",
+    "package_image_url", "Pkg_Pay_36M", "Pkg_Pay_48M", "Pkg_Pay_60M",
+
+    "pkg_dimensions", "loc_misc_bcl", "notes", "location", "stock_id",
+    "barcode", "inventory_stock_ids"
   ];
 
   function replacePlaceholders(canvas, item, priceData) {
-    canvas.getObjects('textbox').forEach(obj => {
-      if (obj.text && obj.text.startsWith('{') && obj.text.endsWith('}')) {
-        const key = obj.text.slice(1, -1);
-        if (validFields.includes(key)) {
-          obj.text = item[key] || priceData[key] || '';
+    const allData = { ...item, ...priceData };
+
+    // Helper to get value by key, trying various formats
+    function getValue(key) {
+      if (!key) return '';
+      key = key.trim();
+
+      // Direct match
+      if (allData[key] !== undefined) return allData[key];
+
+      // Lowercase
+      if (allData[key.toLowerCase()] !== undefined) return allData[key.toLowerCase()];
+
+      // Snake_case
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      if (allData[snakeKey] !== undefined) return allData[snakeKey];
+
+      // CamelCase
+      const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+      if (allData[camelKey] !== undefined) return allData[camelKey];
+
+      // Try nested (dot notation)
+      if (key.includes('.')) {
+        const parts = key.split('.');
+        let value = allData;
+        for (const part of parts) {
+          if (value && value[part] !== undefined) {
+            value = value[part];
+          } else {
+            value = undefined;
+            break;
+          }
         }
-        // else: leave as-is, or optionally log a warning
+        if (value !== undefined) return value;
+      }
+
+      // Not found, return empty string
+      return '';
+    }
+    console.log("Getted objects",canvas.getObjects())
+    canvas.getObjects('textbox').forEach(obj => {
+      if (typeof obj.text === 'string') {
+        console.log("text", typeof obj.text)
+        obj.text = obj.text.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key) => {
+          const value = getValue(key);
+          console.log("value" , value)
+          return value !== undefined ? String(value) : '';
+        });
+        console.log("obj.text" ,obj.text)
       }
     });
     canvas.requestRenderAll();
