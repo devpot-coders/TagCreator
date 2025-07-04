@@ -787,6 +787,7 @@ function EditorCanvas() {
       updated_by: "Admin",
       config_1,
       config_2: (initialConfig && initialConfig.config_2) || "",
+      is_web : "1"
     };
     try {
       const response = await apiClient.post("tags/addEdit.php", payload);
@@ -849,6 +850,7 @@ function EditorCanvas() {
           updated_by: "Admin",
           config_1,
           config_2: "",
+          is_web : "1"  
         };
         try {
           const data = await apiClient.post("tags/addEdit.php", payload);
