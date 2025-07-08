@@ -8,6 +8,13 @@ export const Header = () => {
   const { templateName, isEditMode } = useTemplate();
   const location = useLocation();
 
+  // For Print route, try to get the template name from location.state or context
+  let printTemplateName = "";
+  if (location.pathname === "/print") {
+    // Try to get template name from location.state or context
+    printTemplateName = location.state?.template?.template_name || templateName || "";
+  }
+
   const handleUndo = () => {
     const canvas = document.querySelector("canvas");
     if (canvas && canvas.fabricCanvas) {
@@ -54,7 +61,9 @@ export const Header = () => {
 
   // Determine what to display in the header
   const getDisplayName = () => {
-    // Only show template name if we're on the EditorCanvas page
+    if (location.pathname === "/print") {
+      return printTemplateName ? `Print : ${printTemplateName}` : "Print";
+    }
     if (location.pathname === "/editorCanvas") {
       if (isEditMode && templateName) {
         return templateName;
@@ -64,7 +73,6 @@ export const Header = () => {
         return "New Template";
       }
     }
-    // For other pages, just show "Tag Designer"
     return "";
   };
 
@@ -72,8 +80,8 @@ export const Header = () => {
     <header className="w-full bg-[#F09536] px-6 py-3" >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold text-foreground">
-            Tag Designer{getDisplayName() ? ` : ${getDisplayName()}` : ""}
+          <h1 className="text-2xl font-bold text-foreground">
+            {getDisplayName() ? getDisplayName() : "Tag Designer"}
           </h1>
           <div className="flex items-center space-x-2">
             <Button 
