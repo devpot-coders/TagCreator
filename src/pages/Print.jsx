@@ -32,6 +32,7 @@ import * as fabric  from 'fabric';
 import { useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { useTag } from "../utils/TagService/TagHooks/useTag";
+import { useTemplate } from "../context/TemplateContext";
 
 
 
@@ -373,6 +374,8 @@ const Print = () => {
   const [previewImages, setPreviewImages] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const previewImagesRef = useRef([]);
+
+  const { setTemplateName } = useTemplate();
 
   useEffect(() => {
     const handleAllCategorySubCategoryList = async () => {
@@ -1235,6 +1238,7 @@ const handleOpenCalculator = () => {
     }
     for (let i = 0; i < selectedItems.length; i++) {
       const item = selectedItems[i];
+      console.log("item", item)
       let tempCanvasEl = null;
       try {
         const width = parsedConfig?.canvas_width || 800;
@@ -1290,7 +1294,7 @@ const handleOpenCalculator = () => {
           console.log("Final texts before export:", canvas.getObjects('textbox').map(o => o.text));
         }
         removeGridAndRulers(canvas);
-        const multiplier = 3.125;
+          const multiplier = 3.125;
         const dataURL = canvas.toDataURL({ format: 'png', multiplier });
         console.log(`Exported dataURL length for item ${i}:`, dataURL.length);
         images.push(dataURL);
@@ -1303,6 +1307,7 @@ const handleOpenCalculator = () => {
         }
       }
     }
+    console.log(images)
     setPreviewImages(images);
     previewImagesRef.current = images;
     // Force preview modal to refresh
@@ -1952,6 +1957,10 @@ const handleOpenCalculator = () => {
       fetchTagById(templateId).then((data) => {
         if (data && data.records && data.records[0]) {
           setFullTemplate(data.records[0]);
+          // Set template name in context for Header
+          if (data.records[0].template_name) {
+            setTemplateName(data.records[0].template_name);
+          }
         }
       });
     }
