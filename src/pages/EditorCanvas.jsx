@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ToolsPanel } from "../components/ToolsPanel";
-import  DesignCanvas, { getUserObjectsForSaving }  from "../components/DesignCanvas";
+import DesignCanvas, { getUserObjectsForSaving } from "../components/DesignCanvas";
 import { HorizontalRuler, VerticalRuler } from "../components/Rulers";
 import { Button } from "../components/ui/button";
 import { Group } from "fabric";
@@ -27,6 +27,7 @@ import { apiClient } from "../auth/apiClient";
 import { useTemplate } from "../context/TemplateContext";
 
 import { addGridAndRulers } from "../components/DesignCanvas";
+import EditTemplateCanvas from "../components/EditTemplateCanvas";
 
 // // import { PropertiesPanel } from "../components/PropertiesPanel";
 
@@ -787,7 +788,7 @@ function EditorCanvas() {
       updated_by: "Admin",
       config_1,
       config_2: (initialConfig && initialConfig.config_2) || "",
-      is_web : "1"
+      is_web : (initialConfig && initialConfig.is_web) || "1"
     };
     try {
       const response = await apiClient.post("tags/addEdit.php", payload);
@@ -796,10 +797,13 @@ function EditorCanvas() {
       }
     } catch (error) {
       alert("Failed to update template: " + (error.message || "Unknown error"));
-
+      // Do NOT show the name dialog after an error in edit mode
+      return;
     }
-    // Otherwise, show template name dialog for new templates
-    setShowTemplateNameDialog(true);
+    // Only show name dialog if creating new or cloning
+    if (!isEditMode || isClone) {
+      setShowTemplateNameDialog(true);
+    }
   };
 
   const handleDragStart = (tool) => {
@@ -1142,21 +1146,41 @@ function EditorCanvas() {
               <div className="flex-1 flex justify-center canvas-container-wrapper"
 
               >
+                {/* Render EditTemplateCanvas if editing, otherwise DesignCanvas for new template */}
                 {canvasSize.width && canvasSize.height && (
-                  <DesignCanvas
-                    key={`${canvasSize.width}x${canvasSize.height}`}
-                    activeTool={activeTool}
-                    canvasSize={canvasSize}
-                    onObjectSelect={handleObjectSelect}
-                    onToolChange={handleToolChange}
-                    selectedImage={selectedImage}
-                    onCanvasReady={setFabricCanvas}
-                    strokeColor={strokeColor}
-                    strokeWidth={strokeWidth}
-                    clipboard={clipboard}
-                    setClipboard={setClipboard}
-                    initialConfig={canvasConfig || { objects: [] }}
-                  />
+                  (canvasConfig && Array.isArray(canvasConfig.objects) && canvasConfig.objects.length > 0) ? (
+                    // Edit mode: editing existing template
+                    <EditTemplateCanvas
+                      canvasSize={canvasSize}
+                      initialConfig={canvasConfig}
+                      onObjectSelect={handleObjectSelect}
+                      onToolChange={handleToolChange}
+                      strokeColor={strokeColor}
+                      strokeWidth={strokeWidth}
+                      clipboard={clipboard}
+                      setClipboard={setClipboard}
+                      activeTool={activeTool}
+                      selectedShape={selectedShape}
+                      fillColor={fillColor}
+                      selectedImage={selectedImage}
+                      onCanvasReady={setFabricCanvas}
+                    />
+                  ) : (
+                    // New mode: creating new template
+                    <DesignCanvas
+                      activeTool={activeTool}
+                      canvasSize={canvasSize}
+                      onObjectSelect={handleObjectSelect}
+                      onToolChange={handleToolChange}
+                      selectedImage={selectedImage}
+                      onCanvasReady={setFabricCanvas}
+                      strokeColor={strokeColor}
+                      strokeWidth={strokeWidth}
+                      clipboard={clipboard}
+                      setClipboard={setClipboard}
+                      initialConfig={{ objects: [] }}
+                    />
+                  )
                 )}
 
               </div>
