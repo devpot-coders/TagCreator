@@ -293,6 +293,9 @@ const Print = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [apiPage, setApiPage] = useState(1); // Track which 500-record API page is loaded
+  const [totalCount, setTotalCount] = useState(0); // Track total records from API
+  const [pendingPage, setPendingPage] = useState(null); // Track a page to go to after chunk loads
 
   // New state variables for filtering
   const [bcFilterDropdown, setBcFilterDropdown] = useState(false);
@@ -408,23 +411,25 @@ const Print = () => {
     'Premium Outlets'
   ];
 
-  const suppliers = [
-    'Global Electronics Ltd.',
-    'Fashion Forward Inc.',
-    'Home Essentials Co.',
-    'Beauty World International',
-    'Sports Gear Pro',
-    'Book Haven Publishers',
-    'Toy Kingdom Corp',
-    'Health Plus Suppliers',
-    'Auto Parts Direct',
-    'Luxury Accessories Co.',
-    'Smart Tech Solutions',
-    'Urban Fashion House',
-    'Kitchen Master Supplies',
-    'Wellness Products Inc.',
-    'Outdoor Adventure Gear'
-  ];
+  const [suppliers, setSuppliers] = useState([]);
+
+  // Fetch suppliers from API
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const company_code = localStorage.getItem('company_code') || '';
+        const response = await axios.get(
+          `https://retailpos.iconnectgroup.com/Api/supplier/list.php?company_code=${company_code}`,
+          { params: { company_code } }
+        );
+        setSuppliers(response.data.supplier.map(s => s.supplier_name));
+      } catch (error) {
+        console.error('Failed to fetch suppliers', error);
+        setSuppliers([]);
+      }
+    };
+    fetchSuppliers();
+  }, []);
 
   // Replace dummy table data with API data
   const [tableData, setTableData] = useState([]);
@@ -434,9 +439,16 @@ const Print = () => {
       setLoading(true);
       try {
         const company_code = localStorage.getItem('company_code') || '';
-        const response = await axios.get(`https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=${company_code}`, {
-          params: { company_code }
-        });
+        const response = await axios.get(
+          `https://retailpos.iconnectgroup.com/Api/inventory/list.php?company_code=${company_code}`,
+          {
+            params: {
+              company_code,
+              limit: 500,
+              page: apiPage
+            }
+          }
+        );
         // Map API data to table columns
         const mapped = (response.data.records || []).map((item, idx) => ({
           ...item,
@@ -444,6 +456,9 @@ const Print = () => {
         }));
         setTableData(mapped);
         setFilteredData(mapped);
+        setTotalCount(response.data.count || mapped.length);
+        // Set totalPages based on the number of items fetched and itemsPerPage
+        setTotalPages(Math.ceil((response.data.count || mapped.length) / itemsPerPage));
       } catch (error) {
         setTableData([]);
         setFilteredData([]);
@@ -453,7 +468,7 @@ const Print = () => {
       }
     };
     fetchInventory();
-  }, []);
+  }, [apiPage, itemsPerPage]);
 
   // Get unique values
   const uniqueBcs = Array.from(new Set(tableData.map((item) => item.bc)));
@@ -872,25 +887,55 @@ const Print = () => {
   ]);
 
   // Update pagination to use filteredData
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  useEffect(() => {
+    let pageToCheck = pendingPage !== null ? pendingPage : currentPage;
+    let neededApiPage;
+    if (itemsPerPage === 500) {
+      neededApiPage = pageToCheck;
+    } else {
+      neededApiPage = Math.ceil((pageToCheck * itemsPerPage) / 500) || 1;
+    }
+    if (apiPage !== neededApiPage) {
+      setApiPage(neededApiPage);
+    }
+    // eslint-disable-next-line
+  }, [currentPage, itemsPerPage, pendingPage]);
+
+  // Add this effect to update currentPage after loading a new chunk
+  useEffect(() => {
+    let pageToCheck = pendingPage !== null ? pendingPage : currentPage;
+    let neededApiPage;
+    if (itemsPerPage === 500) {
+      neededApiPage = pageToCheck;
+    } else {
+      neededApiPage = Math.ceil((pageToCheck * itemsPerPage) / 500) || 1;
+    }
+    if (pendingPage !== null && apiPage === neededApiPage && !loading) {
+      setCurrentPage(pendingPage);
+      setPendingPage(null);
+    }
+    // eslint-disable-next-line
+  }, [apiPage, pendingPage, currentPage, itemsPerPage, loading]);
+
+  // Calculate the start and end index for the current page within the current 500-record chunk
+  const apiChunkStart = (apiPage - 1) * 500;
+  const globalIndexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfFirstItem = globalIndexOfFirstItem - apiChunkStart;
+  const indexOfLastItem = indexOfFirstItem + itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Update total pages when filtered data changes
-  useEffect(() => {
-    setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
-    // Reset to first page if current page is out of bounds
-    if (currentPage > Math.ceil(filteredData.length / itemsPerPage)) {
-      setCurrentPage(1);
-    }
-  }, [filteredData, itemsPerPage]);
-
-  // Handle page change
+  // Custom page change handler to support chunked API paging
   const handlePageChange = (pageNumber) => {
     if (pageNumber < 1) {
-      setCurrentPage(1);
+      pageNumber = 1;
     } else if (pageNumber > totalPages) {
-      setCurrentPage(totalPages);
+      pageNumber = totalPages;
+    }
+    const chunkStartPage = ((apiPage - 1) * 500) / itemsPerPage + 1;
+    const chunkEndPage = apiPage * 500 / itemsPerPage;
+    if (pageNumber < chunkStartPage || pageNumber > chunkEndPage) {
+      setPendingPage(pageNumber);
+      setApiPage(Math.ceil((pageNumber * itemsPerPage) / 500));
     } else {
       setCurrentPage(pageNumber);
     }
@@ -1288,16 +1333,19 @@ const handleOpenCalculator = () => {
           console.log("Item being used for replacement:", item);
           replacePlaceholders(canvas, item, calculations || {});
           console.log("Canvas objects after replacing placeholders:", canvas.getObjects('textbox').map(o => o.text));
+          canvas.discardActiveObject();
           canvas.renderAll(); // Ensure updated text is rendered before export
           removeGridAndRulers(canvas);
           // Add log before export
+          // await new Promise(resolve => setTimeout(resolve, 50));
           console.log("Final texts before export:", canvas.getObjects('textbox').map(o => o.text));
         }
         removeGridAndRulers(canvas);
           const multiplier = 3.125;
-        const dataURL = canvas.toDataURL({ format: 'png', multiplier });
-        console.log(`Exported dataURL length for item ${i}:`, dataURL.length);
-        images.push(dataURL);
+            const dataURL = canvas.toDataURL({ format: 'png', multiplier, quality : 1 });
+            console.log(`Exported dataURL length for item ${i}:`, dataURL.length);
+            images.push(dataURL);
+       
       } catch (err) {
         console.error('Error generating preview for item', item, err);
       } finally {
@@ -1308,14 +1356,99 @@ const handleOpenCalculator = () => {
       }
     }
     console.log(images)
-    setPreviewImages(images);
-    previewImagesRef.current = images;
+    setTimeout(() => {
+      setPreviewImages(images);
+      previewImagesRef.current = images;
+    }, 50);
     // Force preview modal to refresh
     setShowPreview(false);
-    setTimeout(() => setShowPreview(true), 0);
+    setTimeout(() => setShowPreview(true), 50);
     setExporting(false);
     setPendingExportType(null);
   };
+
+  // const handleSaveCalculator = async (calculations) => {
+  //   setShowCalculator(false);
+  //   setPriceData(calculations || {});
+  //   setExporting(true);
+  //   const images = [];
+  //   let parsedConfig = null;
+    
+  //   if (fullTemplate && fullTemplate.config_1) {
+  //     try {
+  //       parsedConfig = JSON.parse(fullTemplate.config_1);
+  //       if (typeof parsedConfig.objects === 'string') {
+  //         parsedConfig.objects = JSON.parse(parsedConfig.objects);
+  //       }
+  //     } catch (e) {
+  //       console.error('Error parsing template config_1:', e);
+  //     }
+  //   }
+  
+  //   for (let i = 0; i < selectedItems.length; i++) {
+  //     const item = selectedItems[i];
+  //     let tempCanvasEl = null;
+      
+  //     try {
+  //       const width = parsedConfig?.canvas_width || 800;
+  //       const height = parsedConfig?.canvas_height || 1056;
+  //       tempCanvasEl = document.createElement('canvas');
+  //       tempCanvasEl.width = width;
+  //       tempCanvasEl.height = height;
+        
+  //       const canvas = new fabric.Canvas(tempCanvasEl, { 
+  //         width, 
+  //         height,
+  //         renderOnAddRemove: false // Better performance
+  //       });
+  
+  //       if (parsedConfig) {
+  //         const fixedConfig = fixObjectTypes(parsedConfig);
+  //         await new Promise(resolve => canvas.loadFromJSON(fixedConfig, resolve));
+          
+  //         // CRITICAL RENDERING STEPS
+  //         canvas.discardActiveObject();
+  //         removeGridAndRulers(canvas);
+  //         replacePlaceholders(canvas, item, calculations || {});
+          
+  //         // Force render cycle
+  //         canvas.renderAll();
+  //         await new Promise(resolve => setTimeout(resolve, 50));
+  //         canvas.renderAll();
+  
+  //         // Export with high quality
+  //         const dataURL = canvas.toDataURL({ 
+  //           format: 'png',
+  //           multiplier: 3,
+  //           quality: 1
+  //         });
+          
+  //         images.push(dataURL);
+  //       }
+  //     } catch (err) {
+  //       console.error('Error generating preview for item', item, err);
+  //     } finally {
+  //       if (tempCanvasEl && tempCanvasEl.parentNode) {
+  //         tempCanvasEl.parentNode.removeChild(tempCanvasEl);
+  //       }
+  //     }
+  //   }
+  //   console.log("Final canvas state:", {
+  //     objects: canvas.getObjects().map(o => ({
+  //       type: o.type,
+  //       text: o.text || '',
+  //       visible: o.visible,
+  //       left: o.left,
+  //       top: o.top
+  //     })),
+  //     width: canvas.width,
+  //     height: canvas.height
+  //   });
+  //   setPreviewImages(images);
+  //   previewImagesRef.current = images;
+  //   setExporting(false);
+  //   setShowPreview(true);
+  // };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -2296,6 +2429,7 @@ const handleOpenCalculator = () => {
             <option value={20}>20</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
+            <option value={500}>500</option>
           </select>
           <span className="text-sm text-gray-600">
             Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
@@ -2351,14 +2485,14 @@ const handleOpenCalculator = () => {
           <button
             className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            // disabled={currentPage >= totalPages}
           >
             {'>'}
           </button>
           <button
             className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
             onClick={() => handlePageChange(totalPages)}
-            disabled={currentPage === totalPages}
+            // disabled={currentPage >= totalPages}
           >
             {'>>'}
           </button>

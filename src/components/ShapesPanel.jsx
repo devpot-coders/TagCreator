@@ -23,7 +23,7 @@ const ShapesPanel = ({ onDragStart }) => {
     { id: 'cross', name: 'Cross' },
     { id: 'rightTriangle', name: 'Right Triangle' },
     { id: 'roundedRectangle', name: 'Rounded Rectangle' },
-    // { id: 'cloud', name: 'Cloud' },
+    { id: 'cloud', name: 'Cloud' },
     { id: 'pentagon', name: 'Pentagon' },
     { id: 'heptagon', name: 'Heptagon' },
   ];
@@ -389,11 +389,14 @@ const SHAPES = {
     hasRotatingPoint: true,
   }),
   cloud: (left, top) => {
-    const pathData = `M ${left + 40} ${top + 20}
-      C ${left + 25} ${top + 5}, ${left + 5} ${top + 10}, ${left + 10} ${top + 25}
-      C ${left + 0} ${top + 35}, ${left + 10} ${top + 45}, ${left + 25} ${top + 40}
-      C ${left + 35} ${top + 50}, ${left + 50} ${top + 40}, ${left + 50} ${top + 30}
-      C ${left + 55} ${top + 15}, ${left + 40} ${top + 20}, ${left + 40} ${top + 20} Z`;
+    const pathData = `M ${left + 60} ${top + 40}
+    C ${left + 55} ${top + 20}, ${left + 35} ${top + 20}, ${left + 30} ${top + 35}
+    C ${left + 10} ${top + 35}, ${left + 10} ${top + 55}, ${left + 30} ${top + 55}
+    H ${left + 65}
+    C ${left + 80} ${top + 55}, ${left + 80} ${top + 35}, ${left + 65} ${top + 35}
+    C ${left + 70} ${top + 20}, ${left + 40} ${top + 20}, ${left + 60} ${top + 40}
+      Z`;
+  
     return new Path(pathData, {
       fill: "#15D7FF",
       stroke: "#15D7FF",
